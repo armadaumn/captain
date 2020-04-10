@@ -2,6 +2,7 @@
 package captain
 
 import (
+  "github.com/google/uuid"
   "log"
   "github.com/armadanet/captain/dockercntrl"
   "github.com/armadanet/spinner/spinresp"
@@ -57,4 +58,61 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
     Code: spinresp.Success,
     Data: *s,
   }
+}
+
+// Create a config for spinner
+// After starting a spinner container, get its IP
+// Transform the IP into ws url, make container connect to the dialurl
+func (c *Captain) SelfSpin() {
+  config := dockercntrl.Config{
+    Image: "codyperakslis/spinner",
+    Cmd:   nil,
+    Tty:   true,
+    Name:  uuid.New().String(),
+    Env:   []string{},
+    Port:  0,
+    Limits: &dockercntrl.Limits{
+      CPUShares: 2,
+    },
+  }
+  container, err := c.state.Create(&config)
+  if err != nil {
+    log.Println(err)
+  }
+  _, err = c.state.Run(container)
+  if err != nil {
+    log.Println(err)
+  }
+
+  resp, err := c.state.ContainerInspect(container)
+  if err != nil {
+    log.Println(err)
+  }
+  ip := resp.NetworkSettings.IPAddress
+  url := "ws://" + ip + "/spin"
+  err = c.Dial(url)
+  if err != nil {
+    log.Println(err)
+    return
+  }
+
+  //captainConfig := dockercntrl.Config{
+  //  Image: "docker.io/codyperakslis/captain",
+  //  Cmd:   nil,
+  //  Tty:   true,
+  //  Name:  uuid.New().String(),
+  //  Env:   []string{},
+  //  Port:  0,
+  //  Limits: &dockercntrl.Limits{
+  //    CPUShares: 2,
+  //  },
+  //}
+  //container, err = c.state.Create(&captainConfig)
+  //if err != nil {
+  //  log.Println(err)
+  //}
+  //_, err = c.state.Run(container)
+  //if err != nil {
+  //  log.Println(err)
+  //}
 }

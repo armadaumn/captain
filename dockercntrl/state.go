@@ -130,3 +130,12 @@ func (s *State) VolumeCreateIdempotent(name string) error {
   log.Println(vol)
   return err
 }
+
+// Get container detailed information, equivalent to docker inspect
+func (s *State) ContainerInspect(c *Container) (types.ContainerJSON, error) {
+  resp, err := s.Client.ContainerInspect(s.Context, c.ID)
+  if err != nil {
+    return resp, err
+  }
+  return resp, nil
+}
