@@ -9,13 +9,6 @@ import (
   "log"
 )
 
-var data = `
-selfspin: true
-spinnerselected:
-  url: abc
-  retrytimes: 3
-`
-
 type SpinConfig struct {
   SelfSpin bool
   SpinnerSelected struct {
@@ -52,8 +45,8 @@ func main() {
   if err != nil {panic(err)}
 
   if spinConfig.SelfSpin {
-   cap.SelfSpin()
+   cap.SelfSpin(spinConfig.SpinnerSelected.RetryTimes)
   } else {
-   cap.Run(spinConfig.SpinnerSelected.Url)
+   cap.Run(spinConfig.SpinnerSelected.Url, spinConfig.SpinnerSelected.RetryTimes)
   }
 }

@@ -26,10 +26,13 @@ func New() (*Captain, error) {
 // Connects to a given spinner and runs an infinite loop.
 // This loop is because the dial runs a goroutine, which
 // stops if the main thread closes.
-func (c *Captain) Run(dialurl string) {
-  err := c.Dial(dialurl)
+func (c *Captain) Run(dialurl string, retryTimes int) {
+  // Try to connect to the spinner with a limited times
+  // If the captain can't make a connection, then jump to self-spin
+  err := c.Dial(dialurl, retryTimes)
   if err != nil {
     log.Println(err)
+    c.SelfSpin(retryTimes)
     return
   }
   select {
@@ -63,7 +66,7 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
 // Create a config for spinner
 // After starting a spinner container, get its IP
 // Transform the IP into ws url, make container connect to the dialurl
-func (c *Captain) SelfSpin() {
+func (c *Captain) SelfSpin(retryTimes int) {
   config := dockercntrl.Config{
     Image: "docker.io/codyperakslis/spinner",
     Cmd:   nil,
@@ -90,7 +93,7 @@ func (c *Captain) SelfSpin() {
   }
   ip := resp.NetworkSettings.IPAddress
   url := "ws://" + ip + "/spin"
-  err = c.Dial(url)
+  err = c.Dial(url, retryTimes)
   if err != nil {
     log.Println(err)
     return
