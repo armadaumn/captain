@@ -65,7 +65,7 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
 // Transform the IP into ws url, make container connect to the dialurl
 func (c *Captain) SelfSpin() {
   config := dockercntrl.Config{
-    Image: "codyperakslis/spinner",
+    Image: "docker.io/codyperakslis/spinner",
     Cmd:   nil,
     Tty:   true,
     Name:  uuid.New().String(),

@@ -2,16 +2,43 @@ package main
 
 import (
   "github.com/armadanet/captain"
-  "net/url"
+  "gopkg.in/yaml.v2"
+  "io/ioutil"
+  //"flag"
+  //"net/url"
   "log"
-  "flag"
 )
 
-func main() {
+var data = `
+selfspin: true
+spinnerselected:
+  url: abc
+  retrytimes: 3
+`
 
-  spinnerSelected := flag.String("spinner", "spinner", "The spinner url to connect to.")
-  selfSpin := flag.Bool("selfspin", false, "Become a spinner.")
-  flag.Parse()
+type SpinConfig struct {
+  SelfSpin bool
+  SpinnerSelected struct {
+    Url string
+    RetryTimes int
+  }
+}
+
+func main() {
+  //spinnerSelected := flag.String("spinner", "spinner", "The spinner url to connect to.")
+  //selfSpin := flag.Bool("selfspin", false, "Become a spinner.")
+  //flag.Parse()
+
+  file, err := ioutil.ReadFile("config.yaml")
+  if err != nil {
+    panic(err)
+  }
+  spinConfig := SpinConfig{}
+  err = yaml.Unmarshal(file, &spinConfig)
+
+  if err != nil {
+    panic(err)
+  }
 
   // log.Println(os.Args[1])
   // con, err := url.Parse(os.Args[1])
@@ -24,5 +51,9 @@ func main() {
   cap, err := captain.New()
   if err != nil {panic(err)}
 
-  cap.Run(os.Args[1])
+  if spinConfig.SelfSpin {
+   cap.SelfSpin()
+  } else {
+   cap.Run(spinConfig.SpinnerSelected.Url)
+  }
 }
