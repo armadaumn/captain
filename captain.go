@@ -44,6 +44,17 @@ func (c *Captain) Run(dialurl string, retryTimes int) {
 // Should be changed to logging or a logging system.
 // Kubeedge uses Mosquito for example.
 func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
+  res, err := c.state.MachineInfo()
+  if err != nil {
+    log.Println(err)
+  }
+  cpuLimit := res.NCPU
+  memoryLimit := res.MemTotal
+  if config.Limits.CPUShares > int64(cpuLimit) || config.Limits.Memory > int64(memoryLimit) {
+    log.Println("The container can't be created because it exceeds the limitation of the current machine.")
+    return nil
+  }
+
   container, err := c.state.Create(config)
   if err != nil {
     log.Println(err)
@@ -76,9 +87,20 @@ func (c *Captain) SelfSpin(retryTimes int) {
     Port:  0,
     Limits: &dockercntrl.Limits{
       CPUShares: 2,
-      Memory: 1073741824,
+      Memory: 4073741824,
     },
   }
+  res, err := c.state.MachineInfo()
+  if err != nil {
+    log.Println(err)
+  }
+  cpuLimit := res.NCPU
+  memoryLimit := res.MemTotal
+  if config.Limits.CPUShares > int64(cpuLimit) || config.Limits.Memory > int64(memoryLimit) {
+    log.Println("The spinner can't be created because it exceeds the limitation of the current machine.")
+    return
+  }
+
   container, err := c.state.Create(&config)
   if err != nil {
     log.Println(err)

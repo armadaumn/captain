@@ -139,3 +139,12 @@ func (s *State) ContainerInspect(c *Container) (types.ContainerJSON, error) {
   }
   return resp, nil
 }
+
+// Get information of machine (docker server)
+func (s *State) MachineInfo() (types.Info, error) {
+  resp, err := s.Client.Info(s.Context)
+  if err != nil {
+    return resp, err
+  }
+  return resp, nil
+}
