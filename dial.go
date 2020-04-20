@@ -4,6 +4,7 @@ import (
   "github.com/armadanet/captain/dockercntrl"
   "github.com/armadanet/comms"
   "log"
+  "time"
 )
 
 // Dial a socket connection to a given url. Listen for reads and writes
@@ -18,6 +19,8 @@ func (c *Captain) Dial(dailurl string, retryTimes int) error {
     if i == retryTimes - 1 {
       return err
     }
+    time.Sleep(5 * time.Second)
+    log.Println("Retry to connect in 5 seconds")
   }
   //socket, err = comms.EstablishSocket(dailurl)
   //if err != nil {return err}
