@@ -76,6 +76,7 @@ func (c *Captain) SelfSpin(retryTimes int) {
     Port:  0,
     Limits: &dockercntrl.Limits{
       CPUShares: 2,
+      Memory: 1073741824,
     },
   }
   container, err := c.state.Create(&config)

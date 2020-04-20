@@ -10,7 +10,9 @@ import (
 
 // Limits hold the set of limits for a given container.
 type Limits struct {
-  CPUShares int64     `json:"cpushares"`
+  CPUShares   int64     `json:"cpushares"`
+  Memory      int64     `json:"Memory limit (in bytes)"`
+  //MemorySwap  int64     `json:"Total memory usage (memory + swap)"`
 }
 
 // Config represents the configuration to build a new container.
@@ -46,6 +48,8 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
   hostConfig := &container.HostConfig{
     Resources: container.Resources{
       CPUShares: c.Limits.CPUShares,
+      Memory: c.Limits.Memory,
+      //MemorySwap: c.Limits.MemorySwap,
     },
   }
 
