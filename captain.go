@@ -51,8 +51,13 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
   cpuLimit := res.NCPU
   memoryLimit := res.MemTotal
   if config.Limits.CPUShares > int64(cpuLimit) || config.Limits.Memory > int64(memoryLimit) {
-    log.Println("The container can't be created because it exceeds the limitation of the current machine.")
-    return nil
+    errInfo := "The container can't be created because it exceeds the limitation of the current machine."
+    log.Println(errInfo)
+    return &spinresp.Response{
+      Id:   config.Id,
+      Code: -8, // An temporary code representing insufficient machine resources
+      Data: errInfo,
+    }
   }
 
   container, err := c.state.Create(config)
