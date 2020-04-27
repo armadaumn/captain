@@ -11,6 +11,8 @@ import (
 // Captain holds state information and an exit mechanism.
 type Captain struct {
   state   *dockercntrl.State
+  totalResource dockercntrl.Limits
+  availResource dockercntrl.Limits
   exit    chan interface{}
 }
 
@@ -18,8 +20,32 @@ type Captain struct {
 func New() (*Captain, error) {
   state, err := dockercntrl.New()
   if err != nil {return nil, err}
+  res, err := state.MachineInfo()
+  if err != nil {
+    log.Println(err)
+  }
+  total := dockercntrl.Limits{
+    CPUShares: int64(res.NCPU),
+    Memory:    res.MemTotal,
+  }
+  avail := total
+  list, err := state.List()
+  if err != nil {
+    log.Println(err)
+  }
+  for _, container := range list {
+    resp, err := state.ContainerInspect(container)
+    if err != nil {
+      log.Println(err)
+    }
+    avail.CPUShares -= resp.HostConfig.CPUShares
+    avail.Memory -= resp.HostConfig.Memory
+  }
+
   return &Captain{
     state: state,
+    totalResource: total,
+    availResource: avail,
   }, nil
 }
 
@@ -44,13 +70,7 @@ func (c *Captain) Run(dialurl string, retryTimes int) {
 // Should be changed to logging or a logging system.
 // Kubeedge uses Mosquito for example.
 func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
-  res, err := c.state.MachineInfo()
-  if err != nil {
-    log.Println(err)
-  }
-  cpuLimit := res.NCPU
-  memoryLimit := res.MemTotal
-  if config.Limits.CPUShares > int64(cpuLimit) || config.Limits.Memory > int64(memoryLimit) {
+  if config.Limits.CPUShares > c.availResource.CPUShares || config.Limits.Memory > c.availResource.Memory {
     errInfo := "The container can't be created because it exceeds the limitation of the current machine."
     log.Println(errInfo)
     return &spinresp.Response{
@@ -59,6 +79,8 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
       Data: errInfo,
     }
   }
+  c.availResource.CPUShares -= config.Limits.CPUShares
+  c.availResource.Memory -= c.availResource.Memory
 
   container, err := c.state.Create(config)
   if err != nil {
@@ -92,19 +114,16 @@ func (c *Captain) SelfSpin(retryTimes int) {
     Port:  0,
     Limits: &dockercntrl.Limits{
       CPUShares: 2,
-      Memory: 4073741824,
+      Memory: 973741824,
     },
   }
-  res, err := c.state.MachineInfo()
-  if err != nil {
-    log.Println(err)
-  }
-  cpuLimit := res.NCPU
-  memoryLimit := res.MemTotal
-  if config.Limits.CPUShares > int64(cpuLimit) || config.Limits.Memory > int64(memoryLimit) {
+
+  if config.Limits.CPUShares > c.availResource.CPUShares || config.Limits.Memory > c.availResource.Memory {
     log.Println("The spinner can't be created because it exceeds the limitation of the current machine.")
     return
   }
+  c.availResource.CPUShares -= config.Limits.CPUShares
+  c.availResource.Memory -= config.Limits.Memory
 
   container, err := c.state.Create(&config)
   if err != nil {
