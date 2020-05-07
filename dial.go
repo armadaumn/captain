@@ -19,7 +19,7 @@ func (c *Captain) Dial(dailurl string, retryTimes int) error {
     if i == retryTimes - 1 {
       return err
     }
-    time.Sleep(5 * time.Second)
+    time.Sleep(3 * time.Second)
     log.Println("Retry to connect in 5 seconds")
   }
   //socket, err = comms.EstablishSocket(dailurl)
