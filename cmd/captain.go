@@ -22,7 +22,7 @@ func main() {
   log.Println(con.String())
   log.Println(con.Scheme)
   log.Println(con.User)
-  cap, err := captain.New()
+  cap, err := captain.New(os.Args[2])
   if err != nil {panic(err)}
 
   cap.Run(os.Args[1])

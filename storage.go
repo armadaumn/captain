@@ -6,10 +6,10 @@ import (
 
 func (c *Captain) ConnectStorage() {
   storageconfig := &dockercntrl.Config{
-    Image: "docker.io/codyperakslis/nebula-cargo",
+    Image: "docker.io/codyperakslis/armada-cargo",
     Cmd: []string{"./main"},
     Tty: false,
-    Name: "armada-storage",
+    Name: "armada-storage-"+c.name,
     Limits: &dockercntrl.Limits{
       CPUShares: 4,
     },

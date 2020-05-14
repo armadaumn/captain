@@ -12,15 +12,17 @@ type Captain struct {
   state   *dockercntrl.State
   exit    chan interface{}
   storage bool
+  name    string
 }
 
 // Constructs a new captain.
-func New() (*Captain, error) {
+func New(name string) (*Captain, error) {
   state, err := dockercntrl.New()
   if err != nil {return nil, err}
   return &Captain{
     state: state,
     storage: false,
+    name: name,
   }, nil
 }
 
@@ -33,6 +35,8 @@ func (c *Captain) Run(dialurl string) {
     log.Println(err)
     return
   }
+  c.state.GetNetwork()
+  c.ConnectStorage()
   select {
   case <- c.exit:
   }
@@ -47,17 +51,25 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config, write chan interface
     log.Println(err)
     return
   }
+  // For debugging
+  config.Storage = true
+  // ^^ Remove
   if config.Storage {
+    log.Println("Storage in Config")
     if !c.storage {
       log.Println("Establishing Storage")
       c.storage = true
       c.ConnectStorage()
+    } else {
+      log.Println("Storage already exists")
     }
     err = c.state.NetworkConnect(container)
     if err != nil {
       log.Println(err)
       return
     }
+  } else {
+    log.Println("No storage in config")
   }
   s, err := c.state.Run(container)
   if err != nil {
