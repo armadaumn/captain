@@ -70,13 +70,11 @@ func (c *Captain) Run(dialurl string, retryTimes int) {
 // Should be changed to logging or a logging system.
 // Kubeedge uses Mosquito for example.
 func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
-  if config.Limits.CPUShares > c.availResource.CPUShares || config.Limits.Memory > c.availResource.Memory {
-    errInfo := "The container can't be created because it exceeds the limitation of the current machine."
-    log.Println(errInfo)
+  if c.ResourceCheck(*config) {
     return &spinresp.Response{
       Id:   config.Id,
       Code: -8, // An temporary code representing insufficient machine resources
-      Data: errInfo,
+      Data: "The container exceeds the limitation of the current machine.",
     }
   }
   c.availResource.CPUShares -= config.Limits.CPUShares
@@ -114,16 +112,13 @@ func (c *Captain) SelfSpin(retryTimes int) {
     Port:  0,
     Limits: &dockercntrl.Limits{
       CPUShares: 2,
-      Memory: 973741824,
+      Memory: 1073741824,
     },
   }
 
-  if config.Limits.CPUShares > c.availResource.CPUShares || config.Limits.Memory > c.availResource.Memory {
-    log.Println("The spinner can't be created because it exceeds the limitation of the current machine.")
+  if c.ResourceCheck(config) {
     return
   }
-  c.availResource.CPUShares -= config.Limits.CPUShares
-  c.availResource.Memory -= config.Limits.Memory
 
   container, err := c.state.Create(&config)
   if err != nil {
@@ -165,4 +160,18 @@ func (c *Captain) SelfSpin(retryTimes int) {
   //if err != nil {
   //  log.Println(err)
   //}
+}
+
+// Resource check
+func (c *Captain) ResourceCheck(config dockercntrl.Config) bool {
+  if config.Limits.CPUShares > c.availResource.CPUShares {
+    log.Println("The requirement of CPU exceeds the limitation of the current host.")
+    return false
+  } else if config.Limits.Memory > c.availResource.Memory {
+    log.Println("The requirement of Memory exceeds the limitation of the current host.")
+    return false
+  }
+  c.availResource.CPUShares -= config.Limits.CPUShares
+  c.availResource.Memory -= config.Limits.Memory
+  return true
 }

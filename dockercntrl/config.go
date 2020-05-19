@@ -13,6 +13,7 @@ type Limits struct {
   CPUShares   int64     `json:"cpushares"`
   Memory      int64     `json:"Memory limit (in bytes)"`
   //MemorySwap  int64     `json:"Total memory usage (memory + swap)"`
+  //MemoryReservation  int64   `json:"Memory soft limit (in bytes)"`
 }
 
 // Config represents the configuration to build a new container.
@@ -50,6 +51,7 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
       CPUShares: c.Limits.CPUShares,
       Memory: c.Limits.Memory,
       //MemorySwap: c.Limits.MemorySwap,
+      //MemoryReservation: c.Limits.MemoryReservation,
     },
   }
 
