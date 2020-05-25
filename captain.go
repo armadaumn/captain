@@ -52,14 +52,21 @@ func New() (*Captain, error) {
 // Connects to a given spinner and runs an infinite loop.
 // This loop is because the dial runs a goroutine, which
 // stops if the main thread closes.
-func (c *Captain) Run(dialurl string, retryTimes int) {
-  // Try to connect to the spinner with a limited times
-  // If the captain can't make a connection, then jump to self-spin
-  err := c.Dial(dialurl, retryTimes)
+func (c *Captain) Run(dialurl string) {
+  if dialurl == "" {
+    flag := c.SelfSpin()
+    if flag == false {
+      log.Println("No available spinner")
+      return
+    } else {
+      //TODO query beacon again to get the spinner url
+    }
+  }
+  // Continue the original workflow
+
+  err := c.Dial(dialurl)
   if err != nil {
     log.Println(err)
-    c.SelfSpin(retryTimes)
-    return
   }
   select {
   case <- c.exit:
@@ -70,6 +77,7 @@ func (c *Captain) Run(dialurl string, retryTimes int) {
 // Should be changed to logging or a logging system.
 // Kubeedge uses Mosquito for example.
 func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
+  // Resource check
   if c.ResourceCheck(*config) {
     return &spinresp.Response{
       Id:   config.Id,
@@ -102,7 +110,7 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config) *spinresp.Response {
 // Create a config for spinner
 // After starting a spinner container, get its IP
 // Transform the IP into ws url, make container connect to the dialurl
-func (c *Captain) SelfSpin(retryTimes int) {
+func (c *Captain) SelfSpin() bool {
   config := dockercntrl.Config{
     Image: "docker.io/codyperakslis/spinner",
     Cmd:   nil,
@@ -116,50 +124,36 @@ func (c *Captain) SelfSpin(retryTimes int) {
     },
   }
 
-  if c.ResourceCheck(config) {
-    return
+  // Resource check
+  if !c.ResourceCheck(config) {
+    return false
   }
 
+  // Create spinner container
   container, err := c.state.Create(&config)
   if err != nil {
     log.Println(err)
+    return false
   }
   _, err = c.state.Run(container)
   if err != nil {
     log.Println(err)
+    return false
   }
 
+  // Connect to spinner based on brideg network
   resp, err := c.state.ContainerInspect(container)
   if err != nil {
     log.Println(err)
   }
   ip := resp.NetworkSettings.IPAddress
   url := "ws://" + ip + "/spin"
-  err = c.Dial(url, retryTimes)
+  err = c.Dial(url)
   if err != nil {
     log.Println(err)
-    return
+    return false
   }
-
-  //captainConfig := dockercntrl.Config{
-  //  Image: "docker.io/codyperakslis/captain",
-  //  Cmd:   nil,
-  //  Tty:   true,
-  //  Name:  uuid.New().String(),
-  //  Env:   []string{},
-  //  Port:  0,
-  //  Limits: &dockercntrl.Limits{
-  //    CPUShares: 2,
-  //  },
-  //}
-  //container, err = c.state.Create(&captainConfig)
-  //if err != nil {
-  //  log.Println(err)
-  //}
-  //_, err = c.state.Run(container)
-  //if err != nil {
-  //  log.Println(err)
-  //}
+  return true
 }
 
 // Resource check
