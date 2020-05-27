@@ -6,6 +6,9 @@ import (
   "errors"
   "fmt"
   "strings"
+  "bytes"
+  "encoding/json"
+  "log"
 )
 
 type Network struct {
@@ -60,4 +63,52 @@ func (s *State) AttachContainerNetwork(container *Container, network *Network) e
   if network == nil {return errors.New("No network given")}
   err := s.Client.NetworkConnect(s.Context, network.ID, container.ID, nil)
   return err
+}
+
+/************************************************
+  Docker engine api - direct unix http request
+************************************************/
+
+// create overlay network
+func (s *State) CreateOverlay(name string) (int, error) {
+  requestBody, err := json.Marshal(map[string]interface{} {
+    "Name": name,
+    "Driver": "overlay",
+    "Attachable": true,
+    "IPAM": map[string]interface{} {
+      "Config": []interface{} {
+        map[string]string {
+          "Subnet": "192.168.10.0/24",
+          "Gateway": "192.168.10.1",
+        },
+      },
+    },
+  })
+  if err != nil {
+		log.Println(err)
+    return 0, err
+	}
+  response, err := s.HttpUnix.Post("http://unix/networks/create", "application/json", bytes.NewBuffer(requestBody))
+  if err != nil {
+		log.Println(err)
+    return 0, err
+	}
+  return response.StatusCode, nil
+}
+
+// attach running container to overlay network
+func (s *State) AttachOverlay(container_name string, overlay_name string) (int, error) {
+  requestBody, err := json.Marshal(map[string]string{
+    "Container": container_name,
+  })
+  if err != nil {
+    log.Println(err)
+    return 0, err
+  }
+  response, err := s.HttpUnix.Post("http://unix/networks/"+overlay_name+"/connect", "application/json", bytes.NewBuffer(requestBody))
+  if err != nil {
+		log.Println(err)
+    return 0, err
+	}
+  return response.StatusCode, nil
 }

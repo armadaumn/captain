@@ -9,19 +9,31 @@ import (
   "bytes"
   "strings"
   "log"
+  "net/http"
+  "net"
 )
 
 // State holds the structs required to manipulate the docker daemon
 type State struct {
   Context context.Context
   Client  *client.Client
+  // TODO: switch to sdk
+  HttpUnix  *http.Client
 }
 
 // Construct a new State
 func New() (*State, error) {
   ctx := context.Background()
   cli, err := client.NewEnvClient()
-  return &State{Context: ctx, Client: cli}, err
+  // initiate unix requester TODO: switch to sdk
+  httpUnix := http.Client{
+    Transport: &http.Transport{
+      DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+        return net.Dial("unix", "/var/run/docker.sock")
+      },
+    },
+  }
+  return &State{Context: ctx, Client: cli, HttpUnix: &httpUnix}, err
 }
 
 // Pull pulls the associated image into cache
