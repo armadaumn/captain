@@ -16,6 +16,6 @@ run: build
 	docker run -it --name $(NAME) -v /var/run/docker.sock:/var/run/docker.sock $(IMAGE) $(URL) $(NAME)
 
 clean:
-	docker rm $(CONTAINER_NAME)
-	docker rmi $(IMAGE_NAME)
+	docker rm $(NAME)
+	docker rmi $(IMAGE)
 	docker swarm leave -f
