@@ -4,6 +4,8 @@ github.com/armadanet/captain/dockercntrl v0.0.0-20200130235059-2b593e57fe6c h1:f
 github.com/armadanet/captain/dockercntrl v0.0.0-20200130235059-2b593e57fe6c/go.mod h1:6zVbYBcKeZW6Dh04hbPXA7jP/94fgLLmxq4yDIFLS2c=
 github.com/armadanet/comms v0.0.0-20200130235146-797f75ed067b h1:shcABRH68kYSdh9LkTtCvzK07ANhvv5yDv/Sk3tCeVw=
 github.com/armadanet/comms v0.0.0-20200130235146-797f75ed067b/go.mod h1:buyRVR8qoWkM9T9So5Q0Vv1eS+r71qkwYMRC4bc7Alk=
+github.com/armadanet/comms v0.0.0-20200528090635-3089ce4375d7 h1:yUe/hTsu0gOY86OT1M6pkLVciE6CGDYfKPR2A8j2t/g=
+github.com/armadanet/comms v0.0.0-20200528090635-3089ce4375d7/go.mod h1:R9YoQLBmYniidW8eTXaGtP+WuR82JWB/bXVnYgnlTcQ=
 github.com/armadanet/spinner v0.0.0-20200124033454-474ddc770714 h1:6hDT8AfmJHZ94XHsVqFB5Fl2C2U2VFjDeSUlvEMwULg=
 github.com/armadanet/spinner v0.0.0-20200130235212-5ec32922cd99 h1:4uzoR0b2bgLtR+m2jsSlw9XxrCOOiPqcZk1IjVtWb8Q=
 github.com/armadanet/spinner/spinresp v0.0.0-20200130235212-5ec32922cd99 h1:6ZRXaIL+e+skeAH/82mF5ty6CJ8e8xEbh+35D6y0alU=

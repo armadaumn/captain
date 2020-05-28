@@ -1,6 +1,7 @@
 IMAGE := nebula-captain
 REPO := codyperakslis/captain
-URL := wss://69de8bbe.ngrok.io/join
+#URL := wss://69de8bbe.ngrok.io/join
+URL := http://18.221.23.45:9898/newCaptain
 NAME := primary
 
 # Dynamic Port Exposure
