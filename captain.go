@@ -75,9 +75,7 @@ func (c *Captain) QueryBeacon(beaconURL string, selfSpin bool) (string, error) {
   }
 
   // connect the selected spinner
-  fmt.Println(res.OverlayName)
-  fmt.Println(c.name)
-  err = c.state.JoinSwarmAndOverlay(res.Token, res.Ip, res.OverlayName, c.name)
+  err = c.state.JoinSwarmAndOverlay(res.Token, res.Ip, c.name, res.OverlayName)
   if err != nil {return "",err}
   return res.ContainerName, nil
 }
