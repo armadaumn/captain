@@ -5,27 +5,58 @@ import(
   "io/ioutil"
   "log"
   "fmt"
+  "time"
   "errors"
   "encoding/json"
 )
 
 // Captain/Spinner join the overlay network
-// given target token, ip, overlay name, error
-// 1) get self ip
-// 2) join the swarm
-// 3) attach self to overlay
-// 4) wait for network setup
+// join the swarm first
+// given target token, ip, overlay name and self_container_name
+func (s *State) JoinSwarmAndOverlay(token string, ip string, containerName, overlayName string) error {
+  // 1) get self ip
+  ipInfo, err := getIpInfo()
+  if err != nil {return err}
 
-// Beacon create overlay network
-// Input: containerName overlayName
-// Return: token, ip, error
+  // 2) join the swarm
+  respCode, err := s.JoinSwarm(ipInfo.Ip, token, ip)
+  if err != nil {return err}
+  if respCode != 200 {return errors.New(fmt.Sprintf("Join swarm failed. Response code: %d", respCode))}
+
+  // 3) attach self to overlay
+  respCode, err = s.AttachOverlay(containerName, overlayName)
+  if err != nil {return err}
+  if respCode != 200 {return errors.New(fmt.Sprintf("Attach Overlay network failed. Response code: %d", respCode))}
+
+  // 4) wait for network setup
+  time.Sleep(5*time.Second)
+  fmt.Println(containerName+" successfully join the overlay "+overlayName)
+  return nil
+}
+
+// join the overlay (already join the swarm)
+func (s *State) JoinOverlay(containerName, overlayName string) error {
+  // 1) attach self to overlay
+  respCode, err := s.AttachOverlay(containerName, overlayName)
+  if err != nil {return err}
+  if respCode != 200 {return errors.New(fmt.Sprintf("Attach Overlay network failed. Response code: %d", respCode))}
+
+  // 2) wait for network setup
+  time.Sleep(5*time.Second)
+  fmt.Println(containerName+" successfully join the overlay "+overlayName)
+  return nil
+}
+
+/* Beacon create overlay network
+Input: containerName overlayName
+Return: token, beacon_ip, error */
 func (s *State) BeaconCreateOverlay(containerName string, overlayName string) (string, string, error) {
-  // 1) get self ip (ip)
+  // get self ip info
   ipInfo, err := getIpInfo()
   if err != nil {
     return "", "", err
   }
-  // 2) initialize a new swarm
+  // initialize a new swarm
   respCode, err := s.CreateSwarm(ipInfo.Ip)
   if err != nil {
     return "","",err
@@ -33,8 +64,7 @@ func (s *State) BeaconCreateOverlay(containerName string, overlayName string) (s
   if respCode != 200 {
     return "","",errors.New(fmt.Sprintf("Create new swarm failed. Response code: %d", respCode))
   }
-
-  // 3) get the swarm token
+  // get the swarm token
   respCode, swarmInfo, err := s.GetSwarmInfo()
   if err != nil {
     return "","",err
@@ -44,9 +74,8 @@ func (s *State) BeaconCreateOverlay(containerName string, overlayName string) (s
     token = swarmInfo.JoinTokens["Worker"]
   } else {
     return "","",errors.New(fmt.Sprintf("Failed getting swarm info. Response code: %d", respCode))
-
   }
-  // 4) create overlay network
+  // create overlay network
   respCode, err = s.CreateOverlay(overlayName)
   if err != nil {
     return "","",err
@@ -54,7 +83,7 @@ func (s *State) BeaconCreateOverlay(containerName string, overlayName string) (s
   if respCode != 201 {
     return "","",errors.New(fmt.Sprintf("Create Overlay network failed. Response code: %d", respCode))
   }
-  // 5) attach self to beacon overlay
+  // attach beacon to beacon overlay
   respCode, err = s.AttachOverlay(containerName, overlayName)
   if err != nil {
     return "","",err
