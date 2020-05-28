@@ -48,6 +48,19 @@ func (s *State) JoinOverlay(containerName, overlayName string) error {
 }
 
 /* Beacon create overlay network
+for a new joined spinner */
+func (s *State) BeaconCreateSpinnerOverlay(overlayName string) error {
+  respCode, err := s.CreateOverlay(overlayName)
+  if err != nil {
+    return err
+  }
+  if respCode != 201 {
+    return errors.New(fmt.Sprintf("Create Overlay network failed. Response code: %d", respCode))
+  }
+  return nil
+}
+
+/* Beacon create overlay network
 Input: containerName overlayName
 Return: token, beacon_ip, error */
 func (s *State) BeaconCreateOverlay(containerName string, overlayName string) (string, string, error) {
