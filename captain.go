@@ -47,8 +47,8 @@ func (c *Captain) Run(beaconURL string, selfSpin bool) {
     log.Println(err)
     return
   }
-  //c.state.GetNetwork()
-  //c.ConnectStorage()
+  c.state.GetNetwork()
+  c.ConnectStorage()
   select {
   case <- c.exit:
   }
