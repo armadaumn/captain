@@ -75,14 +75,14 @@ func (s *State) CreateOverlay(name string) (int, error) {
     "Name": name,
     "Driver": "overlay",
     "Attachable": true,
-    "IPAM": map[string]interface{} {
-      "Config": []interface{} {
-        map[string]string {
-          "Subnet": "192.168.10.0/24",
-          "Gateway": "192.168.10.1",
-        },
-      },
-    },
+    // "IPAM": map[string]interface{} {
+    //   "Config": []interface{} {
+    //     map[string]string {
+    //       "Subnet": "192.168.10.0/24",
+    //       "Gateway": "192.168.10.1",
+    //     },
+    //   },
+    // },
   })
   if err != nil {
 		log.Println(err)
