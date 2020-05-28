@@ -6,7 +6,7 @@ import (
   "github.com/armadanet/captain/dockercntrl"
   "github.com/armadanet/spinner/spinresp"
   "github.com/armadanet/comms"
-  "fmt"
+  //"fmt"
 )
 
 // Captain holds state information and an exit mechanism.
@@ -42,7 +42,7 @@ func (c *Captain) Run(beaconURL string, selfSpin bool) {
   // Register to selected spinner and start acting as a worker
   // TODO: dial fails -> repeat the above operation
   // TODO: connected spinner failed -> find a new spinner to connect
-  err = c.Dial("wss://"+spinner_name+":5912/join")
+  err = c.Dial("ws://"+spinner_name+":5912/join")
   if err != nil {
     log.Println(err)
     return
@@ -70,7 +70,7 @@ func (c *Captain) QueryBeacon(beaconURL string, selfSpin bool) (string, error) {
 
   // selfSpin
   if selfSpin || !res.Valid {
-    // spinner_name, internal_port, err = c.SelfSpin()
+    // spinner_name, err = c.SelfSpin()
     // if err != nil {return "",err}
   }
 
