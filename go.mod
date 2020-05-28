@@ -2,7 +2,7 @@ module github.com/armadanet/captain
 
 go 1.13
 
-replace github.com/armadanet/captain/dockercntrl => ./dockercntrl
+// replace github.com/armadanet/captain/dockercntrl => ./dockercntrl
 
 require (
 	github.com/armadanet/captain/dockercntrl v0.0.0-20200130235059-2b593e57fe6c
