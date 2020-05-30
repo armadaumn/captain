@@ -8,6 +8,7 @@ import (
   "strings"
   "bytes"
   "encoding/json"
+  "io/ioutil"
   "log"
 )
 
@@ -97,18 +98,34 @@ func (s *State) CreateOverlay(name string) (int, error) {
 }
 
 // attach running container to overlay network
-func (s *State) AttachOverlay(container_name string, overlay_name string) (int, error) {
+func (s *State) AttachOverlay(container_name string, overlay_name string) (int, string, error) {
   requestBody, err := json.Marshal(map[string]string{
     "Container": container_name,
   })
   if err != nil {
     log.Println(err)
-    return 0, err
+    return 0, "", err
   }
   response, err := s.HttpUnix.Post("http://unix/networks/"+overlay_name+"/connect", "application/json", bytes.NewBuffer(requestBody))
   if err != nil {
 		log.Println(err)
-    return 0, err
+    return 0, "", err
 	}
-  return response.StatusCode, nil
+  if response.StatusCode != 200 {
+    body, err := ioutil.ReadAll(response.Body)
+    if err != nil {
+      return 0, "", err
+    }
+    var res struct {
+      Message string `json:"message"`
+    }
+    err = json.Unmarshal(body, res)
+    if err != nil {
+      return 0, "", err
+    }
+    response.Body.Close()
+    return response.StatusCode, res.Message, nil
+  } else {
+    return response.StatusCode, "", nil
+  }
 }

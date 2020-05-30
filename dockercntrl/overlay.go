@@ -24,9 +24,9 @@ func (s *State) JoinSwarmAndOverlay(token string, ip string, containerName, over
   if respCode != 200 {return errors.New(fmt.Sprintf("Join swarm failed. Response code: %d", respCode))}
 
   // 3) attach self to overlay
-  respCode, err = s.AttachOverlay(containerName, overlayName)
+  respCode, respMessage, err := s.AttachOverlay(containerName, overlayName)
   if err != nil {return err}
-  if respCode != 200 {return errors.New(fmt.Sprintf("Attach Overlay network failed. Response code: %d", respCode))}
+  if respCode != 200 {return errors.New(fmt.Sprintf("Attach Overlay network failed. Response code: %d, %s", respCode, respMessage))}
 
   // 4) wait for network setup
   time.Sleep(5*time.Second)
@@ -37,9 +37,9 @@ func (s *State) JoinSwarmAndOverlay(token string, ip string, containerName, over
 // join the overlay (already join the swarm)
 func (s *State) JoinOverlay(containerName, overlayName string) error {
   // 1) attach self to overlay
-  respCode, err := s.AttachOverlay(containerName, overlayName)
+  respCode, respMessage, err := s.AttachOverlay(containerName, overlayName)
   if err != nil {return err}
-  if respCode != 200 {return errors.New(fmt.Sprintf("Attach Overlay network failed. Response code: %d", respCode))}
+  if respCode != 200 {return errors.New(fmt.Sprintf("Attach Overlay network failed. Response code: %d, %s", respCode, respMessage))}
 
   // 2) wait for network setup
   time.Sleep(5*time.Second)
@@ -97,12 +97,12 @@ func (s *State) BeaconCreateOverlay(containerName string, overlayName string) (s
     return "","",errors.New(fmt.Sprintf("Create Overlay network failed. Response code: %d", respCode))
   }
   // attach beacon to beacon overlay
-  respCode, err = s.AttachOverlay(containerName, overlayName)
+  respCode, respMessage, err := s.AttachOverlay(containerName, overlayName)
   if err != nil {
     return "","",err
   }
   if respCode != 200 {
-    return "","",errors.New(fmt.Sprintf("Attach Overlay network failed. Response code: %d", respCode))
+    return "","",errors.New(fmt.Sprintf("Attach Overlay network failed. Response code: %d, %s", respCode, respMessage))
   }
   return token, ipInfo.Ip, nil
 }

@@ -6,7 +6,8 @@ import (
 
 func (c *Captain) ConnectStorage() {
   storageconfig := &dockercntrl.Config{
-    Image: "docker.io/codyperakslis/armada-cargo",
+    //Image: "docker.io/codyperakslis/armada-cargo",
+    Image: "docker.io/geoffreyhl/armada-cargo",
     Cmd: []string{"./main"},
     Tty: false,
     Name: "armada-storage-"+c.name,
