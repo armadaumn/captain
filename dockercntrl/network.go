@@ -119,7 +119,7 @@ func (s *State) AttachOverlay(container_name string, overlay_name string) (int, 
     var res struct {
       Message string `json:"message"`
     }
-    err = json.Unmarshal(body, res)
+    err = json.Unmarshal(body, &res)
     if err != nil {
       return 0, "", err
     }
