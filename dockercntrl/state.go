@@ -8,7 +8,6 @@ import (
   "github.com/docker/docker/api/types/volume"
   "bytes"
   "strings"
-  "log"
   "net/http"
   "net"
 )
