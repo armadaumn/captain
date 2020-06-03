@@ -76,8 +76,10 @@ func spinnerNotifyChannel(c chan chanMessage) {
       return
     }
     w.WriteHeader(http.StatusOK)
+    log.Println(res.Spinner_Overlay+"!!!!!!!!!!!!!!!!")
     // get the notice from started spinner
     c <- res
   })
-  log.Fatal(s.ListenAndServe())
+  //log.Fatal(s.ListenAndServe())
+  s.ListenAndServe()
 }
