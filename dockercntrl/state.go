@@ -139,7 +139,7 @@ func (s *State) VolumeCreate(name string) error {
     },
     Name: name,
   }
-  vol, err := s.Client.VolumeCreate(s.Context, v)
-  log.Println(vol)
+  _, err := s.Client.VolumeCreate(s.Context, v)
+  //log.Println(vol)
   return err
 }

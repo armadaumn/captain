@@ -6,7 +6,7 @@ import (
   "github.com/armadanet/captain/dockercntrl"
   "github.com/armadanet/spinner/spinresp"
   "github.com/armadanet/comms"
-  //"fmt"
+  "fmt"
 )
 
 // Captain holds state information and an exit mechanism.
@@ -32,6 +32,20 @@ func New(name string) (*Captain, error) {
 // This loop is because the dial runs a goroutine, which
 // stops if the main thread closes.
 func (c *Captain) Run(beaconURL string, selfSpin bool) {
+  // create local bridge network
+  bridge, err := c.state.GetNetwork()
+  if err != nil {
+    log.Println(err)
+    return
+  }
+  // attach self to bridge network
+  err = c.state.AttachNetwork(c.name, bridge.ID)
+  if err != nil {
+    log.Println(err)
+    return
+  }
+  // start cargo container
+  c.ConnectStorage()
   // query beacon for a spinner
   spinner_name, err := c.QueryBeacon(beaconURL, selfSpin)
   if err != nil {
@@ -47,16 +61,7 @@ func (c *Captain) Run(beaconURL string, selfSpin bool) {
     log.Println(err)
     return
   }
-  // create local bridge network
-  bridge, err := c.state.GetNetwork()
-  if err != nil {
-    log.Println(err)
-    return
-  }
-  // attach self to bridge network
-  c.state.AttachNetwork(c.name, bridge.ID)
-  // start cargo container
-  c.ConnectStorage()
+
   select {
   case <- c.exit:
   }
@@ -94,9 +99,6 @@ func (c *Captain) QueryBeacon(beaconURL string, selfSpin bool) (string, error) {
 }
 
 
-
-
-
 // Executes a given config, waiting to print output.
 // Should be changed to logging or a logging system.
 // Kubeedge uses Mosquito for example.
@@ -106,33 +108,42 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config, write chan interface
     log.Println(err)
     return
   }
-  // For debugging
-  config.Storage = true
-  // ^^ Remove
-  if config.Storage {
-    log.Println("Storage in Config")
-    if !c.storage {
-      log.Println("Establishing Storage")
-      c.storage = true
-      c.ConnectStorage()
-    } else {
-      log.Println("Storage already exists")
-    }
-    err = c.state.NetworkConnect(container)
-    if err != nil {
-      log.Println(err)
-      return
-    }
-  } else {
-    log.Println("No storage in config")
+  // // For debugging
+  // config.Storage = true
+  // // ^^ Remove
+  // if config.Storage {
+  //   log.Println("Storage in Config")
+  //   if !c.storage {
+  //     log.Println("Establishing Storage")
+  //     c.storage = true
+  //     c.ConnectStorage()
+  //   } else {
+  //     log.Println("Storage already exists")
+  //   }
+  //   err = c.state.NetworkConnect(container)
+  //   if err != nil {
+  //     log.Println(err)
+  //     return
+  //   }
+  // } else {
+  //   log.Println("No storage in config")
+  // }
+
+  // connect all new containers under captain to bridge network
+  err = c.state.NetworkConnect(container)
+  if err != nil {
+    log.Println(err)
+    return
   }
+  // start and wait this container
   s, err := c.state.Run(container)
   if err != nil {
     log.Println(err)
     return
   }
-  log.Println("Container Output: ")
-  log.Println(*s)
+  log.Println("Task Container Output: ")
+  fmt.Println(*s)
+  // for system containers: write = nil
   if write != nil {
     write <- &spinresp.Response{
       Id: config.Id,
