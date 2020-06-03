@@ -85,7 +85,7 @@ func (c *Captain) QueryBeacon(beaconURL string, selfSpin bool) (string, error) {
   if selfSpin || !res.Valid {
     log.Println("Self-spining... Building up connection to spinner...")
     res.OverlayName, res.ContainerName= c.SelfSpin()
-    // just attach the overlay
+    // just attach the overlay since local spinner already joined swarm
     err = c.state.JoinOverlay(c.name, res.OverlayName)
     if err != nil {return "",err}
   } else {

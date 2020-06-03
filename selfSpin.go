@@ -8,7 +8,8 @@ import (
   "io/ioutil"
   "os"
   "encoding/json"
-  //"context"
+  "context"
+  "time"
   //"github.com/google/uuid"
 )
 
@@ -62,8 +63,9 @@ func spinnerNotifyChannel(c chan chanMessage) {
   	Addr:           ":9999",
   	Handler:        router,
   }
+  qs := make(chan int)
+  go quitServer(qs, s)
   router.HandleFunc("/joinFinished", func(w http.ResponseWriter, r *http.Request) {
-    //defer s.Shutdown(context.Background())
     var res chanMessage
     body, err := ioutil.ReadAll(r.Body)
     if err != nil {
@@ -75,11 +77,19 @@ func spinnerNotifyChannel(c chan chanMessage) {
       log.Println(err)
       return
     }
-    w.WriteHeader(http.StatusOK)
-    log.Println(res.Spinner_Overlay+"!!!!!!!!!!!!!!!!")
     // get the notice from started spinner
     c <- res
+    // notify -> stop the server
+    qs <- 0
   })
   //log.Fatal(s.ListenAndServe())
   s.ListenAndServe()
+}
+
+// shut down the server after message received
+func quitServer(qs chan int, s *http.Server) {
+  <- qs
+  time.Sleep(1*time.Second)
+  log.Println("Shutting down spinner channel...")
+  s.Shutdown(context.Background())
 }

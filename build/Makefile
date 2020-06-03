@@ -19,3 +19,8 @@ clean:
 	docker rm $(NAME)
 	docker rmi $(IMAGE)
 	docker swarm leave -f
+	docker stop spinner1 armada-storage-primary
+	docker rm spinner1 armada-storage-primary
+	docker rmi geoffreyhl/spinner geoffreyhl/armada-cargo
+	docker network rm nebula_bridge
+	docker volume rm cargo
