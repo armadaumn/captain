@@ -47,7 +47,15 @@ func (c *Captain) Run(beaconURL string, selfSpin bool) {
     log.Println(err)
     return
   }
-  c.state.GetNetwork()
+  // create local bridge network
+  bridge, err := c.state.GetNetwork()
+  if err != nil {
+    log.Println(err)
+    return
+  }
+  // attach self to bridge network
+  c.state.AttachNetwork(c.name, bridge.ID)
+  // start cargo container
   c.ConnectStorage()
   select {
   case <- c.exit:
@@ -72,6 +80,11 @@ func (c *Captain) QueryBeacon(beaconURL string, selfSpin bool) (string, error) {
   if selfSpin || !res.Valid {
     // spinner_name, err = c.SelfSpin()
     // if err != nil {return "",err}
+
+    // wait notice from new spinner
+
+    // then we know the overlay name for this spinner
+    // res.OverlayName = ?
   }
 
   // connect the selected spinner

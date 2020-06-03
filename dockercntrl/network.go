@@ -97,35 +97,68 @@ func (s *State) CreateOverlay(name string) (int, error) {
   return response.StatusCode, nil
 }
 
-// attach running container to overlay network
-func (s *State) AttachOverlay(container_name string, overlay_name string) (int, string, error) {
+// revised version api request
+func (s *State) AttachNetwork(container_name string, network string) error {
   requestBody, err := json.Marshal(map[string]string{
     "Container": container_name,
   })
   if err != nil {
     log.Println(err)
-    return 0, "", err
+    return err
   }
-  response, err := s.HttpUnix.Post("http://unix/networks/"+overlay_name+"/connect", "application/json", bytes.NewBuffer(requestBody))
+  response, err := s.HttpUnix.Post("http://unix/networks/"+network+"/connect", "application/json", bytes.NewBuffer(requestBody))
   if err != nil {
 		log.Println(err)
-    return 0, "", err
+    return err
 	}
   if response.StatusCode != 200 {
     body, err := ioutil.ReadAll(response.Body)
     if err != nil {
-      return 0, "", err
+      return err
     }
     var res struct {
       Message string `json:"message"`
     }
     err = json.Unmarshal(body, &res)
     if err != nil {
-      return 0, "", err
+      return err
     }
     response.Body.Close()
-    return response.StatusCode, res.Message, nil
+    return errors.New("Attach network response not 200: "+res.Message)
   } else {
-    return response.StatusCode, "", nil
+    return nil
   }
 }
+
+// // attach running container to overlay network
+// func (s *State) AttachOverlay(container_name string, overlay_name string) (int, string, error) {
+//   requestBody, err := json.Marshal(map[string]string{
+//     "Container": container_name,
+//   })
+//   if err != nil {
+//     log.Println(err)
+//     return 0, "", err
+//   }
+//   response, err := s.HttpUnix.Post("http://unix/networks/"+overlay_name+"/connect", "application/json", bytes.NewBuffer(requestBody))
+//   if err != nil {
+// 		log.Println(err)
+//     return 0, "", err
+// 	}
+//   if response.StatusCode != 200 {
+//     body, err := ioutil.ReadAll(response.Body)
+//     if err != nil {
+//       return 0, "", err
+//     }
+//     var res struct {
+//       Message string `json:"message"`
+//     }
+//     err = json.Unmarshal(body, &res)
+//     if err != nil {
+//       return 0, "", err
+//     }
+//     response.Body.Close()
+//     return response.StatusCode, res.Message, nil
+//   } else {
+//     return response.StatusCode, "", nil
+//   }
+// }
