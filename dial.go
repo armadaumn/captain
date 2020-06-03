@@ -25,6 +25,7 @@ func (c *Captain) connect(read chan interface{}, write chan interface{}) {
       if !ok {break}
       config, ok := data.(*dockercntrl.Config)
       if !ok {break}
+      log.Println("New Task Arrived:")
       log.Println(config)
       go c.ExecuteConfig(config, write)
     }

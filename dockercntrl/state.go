@@ -67,7 +67,6 @@ func (s *State) Run(c *Container) (*string, error) {
 		return nil, err
 	}
 	_, err := s.Client.ContainerWait(s.Context, c.ID)
-  log.Println(err)
 	if err != nil {return nil, err}
 
 	out, err := s.Client.ContainerLogs(s.Context, c.ID, types.ContainerLogsOptions{ShowStdout: true})
