@@ -51,6 +51,8 @@ func (c *Captain) StartSpinner(spinner_name string) {
     },
     Storage: false,
   }
+  // -v /var/run/docker.sock:/var/run/docker.sock
+  spinnerconfig.AddDeamonMount()
   go c.ExecuteConfig(spinnerconfig, nil)
 }
 

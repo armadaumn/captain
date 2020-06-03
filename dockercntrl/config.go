@@ -42,6 +42,16 @@ func (c *Config) AddMount(name string) {
   }
 }
 
+func (c *Config) AddDeamonMount() {
+  c.mounts = []mount.Mount{
+    {
+      Type: mount.TypeVolume,
+      Source: "/var/run/docker.sock",
+      Target: "/var/run/docker.sock",
+    },
+  }
+}
+
 // Converts a dockercntrl.Config into the necessary docker-go-sdk configs
 func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
   var id string
