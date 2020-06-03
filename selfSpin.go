@@ -32,6 +32,7 @@ func (c *Captain) SelfSpin() (string, string) {
 }
 
 func (c *Captain) StartSpinner(spinner_name string) {
+  spinnerBeaconQueryUrl := os.Getenv("SPINNER_NAME")
   spinnerconfig := &dockercntrl.Config{
     Image: "docker.io/geoffreyhl/spinner",
     Cmd: []string{"./main"},
@@ -42,7 +43,12 @@ func (c *Captain) StartSpinner(spinner_name string) {
       CPUShares: 4,
     },
     // pass captain name as env var
-    Env: []string{"CAPTAIN_URL=http://"+c.name+":9999/joinFinished", "SPINNERID="+spinner_name},
+    Env: []string{
+      "CAPTAIN_URL=http://"+c.name+":9999/joinFinished",
+      "SPINNERID="+spinner_name,
+      "URL="+spinnerBeaconQueryUrl,
+      "SELFSPIN=true",
+    },
     Storage: false,
   }
   go c.ExecuteConfig(spinnerconfig, nil)
