@@ -45,7 +45,7 @@ func (c *Config) AddMount(name string) {
 func (c *Config) AddDeamonMount() {
   c.mounts = []mount.Mount{
     {
-      Type: mount.TypeVolume,
+      Type: mount.TypeBind,
       Source: "/var/run/docker.sock",
       Target: "/var/run/docker.sock",
     },
