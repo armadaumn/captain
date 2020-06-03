@@ -24,13 +24,13 @@ func (s *State) GetNetwork() (*Network, error) {
   } else if len(networks) == 1 {
     return &networks[0], err
   } else {
-    return nil, errors.New(fmt.Sprintf("Too many nebula_bridge networks (%d) should be 1.", len(networks)))
+    return nil, errors.New(fmt.Sprintf("Too many armada_bridge networks (%d) should be 1.", len(networks)))
   }
 }
 
 func (s *State) NetworkList() ([]Network, error) {
   networkFilter := filters.NewArgs()
-  networkFilter.Add("name", "nebula_bridge")
+  networkFilter.Add("name", "armada_bridge")
   resp, err := s.Client.NetworkList(s.Context, types.NetworkListOptions{
     Filters: networkFilter,
   })
@@ -42,7 +42,7 @@ func (s *State) NetworkList() ([]Network, error) {
 }
 
 func (s *State) NetworkCreate() (Network, error) {
-  resp, err := s.Client.NetworkCreate(s.Context, "nebula_bridge", types.NetworkCreate{
+  resp, err := s.Client.NetworkCreate(s.Context, "armada_bridge", types.NetworkCreate{
     CheckDuplicate: true,
   })
   return Network{ID: resp.ID}, err

@@ -2,7 +2,7 @@ IMAGE := nebula-captain
 REPO := codyperakslis/captain
 #URL := wss://69de8bbe.ngrok.io/join
 URL := http://3.23.114.100:9898/newCaptain
-NAME := primary
+NAME := captain1
 # selfSpin and spinner_name for selfspin
 SELFSPIN := false
 SPINNER_NAME := spinner1
@@ -19,8 +19,11 @@ clean:
 	docker rm $(NAME)
 	docker rmi $(IMAGE)
 	docker swarm leave -f
-	docker stop spinner1 armada-storage-primary
-	docker rm spinner1 armada-storage-primary
+	#docker stop armada-storage
+	docker stop $(SPINNER_NAME) armada-storage
+	#docker rm armada-storage
+	docker rm $(SPINNER_NAME) armada-storage
+	#docker rmi geoffreyhl/armada-cargo
 	docker rmi geoffreyhl/spinner geoffreyhl/armada-cargo
-	docker network rm nebula_bridge
+	docker network rm armada_bridge
 	docker volume rm cargo

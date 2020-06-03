@@ -52,16 +52,13 @@ func (c *Captain) Run(beaconURL string, selfSpin bool) {
     log.Println(err)
     return
   }
-
   // Register to selected spinner and start acting as a worker
-  // TODO: dial fails -> repeat the above operation
-  // TODO: connected spinner failed -> find a new spinner to connect
   err = c.Dial("ws://"+spinner_name+":5912/join")
   if err != nil {
     log.Println(err)
     return
   }
-
+  // exit
   select {
   case <- c.exit:
   }
@@ -97,7 +94,6 @@ func (c *Captain) QueryBeacon(beaconURL string, selfSpin bool) (string, error) {
   // return the selected spinner id (name)
   return res.ContainerName, nil
 }
-
 
 // Executes a given config, waiting to print output.
 // Should be changed to logging or a logging system.

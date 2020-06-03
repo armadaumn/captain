@@ -10,7 +10,7 @@ func (c *Captain) ConnectStorage() {
     Image: "docker.io/geoffreyhl/armada-cargo",
     Cmd: []string{"./main"},
     Tty: false,
-    Name: "armada-storage-"+c.name,
+    Name: "armada-storage",
     Limits: &dockercntrl.Limits{
       CPUShares: 4,
     },
