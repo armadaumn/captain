@@ -42,7 +42,7 @@ func (c *Captain) StartSpinner(spinner_name string) {
       CPUShares: 4,
     },
     // pass captain name as env var
-    Env: []string{"CAPTAIN_URL=http://"+c.name+":9999/joinFinished"},
+    Env: []string{"CAPTAIN_URL=http://"+c.name+":9999/joinFinished", "SPINNERID="+spinner_name},
     Storage: false,
   }
   go c.ExecuteConfig(spinnerconfig, nil)
