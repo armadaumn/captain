@@ -32,7 +32,7 @@ func (c *Captain) SelfSpin() (string, string) {
 }
 
 func (c *Captain) StartSpinner(spinner_name string) {
-  spinnerBeaconQueryUrl := os.Getenv("SPINNER_NAME")
+  spinnerBeaconQueryUrl := os.Getenv("BEACON_QUERY")
   spinnerconfig := &dockercntrl.Config{
     Image: "docker.io/geoffreyhl/spinner",
     Cmd: []string{"./main"},
