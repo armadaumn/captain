@@ -85,11 +85,15 @@ func (c *Captain) QueryBeacon(beaconURL string, selfSpin bool) (string, error) {
   if selfSpin || !res.Valid {
     log.Println("Self-spining... Building up connection to spinner...")
     res.OverlayName, res.ContainerName= c.SelfSpin()
+    // just attach the overlay
+    err = c.state.JoinOverlay(c.name, res.OverlayName)
+    if err != nil {return "",err}
+  } else {
+    // join swarm and connect the selected spinner
+    err = c.state.JoinSwarmAndOverlay(res.Token, res.Ip, c.name, res.OverlayName)
+    if err != nil {return "",err}
   }
 
-  // connect the selected spinner
-  err = c.state.JoinSwarmAndOverlay(res.Token, res.Ip, c.name, res.OverlayName)
-  if err != nil {return "",err}
   // return the selected spinner id (name)
   return res.ContainerName, nil
 }

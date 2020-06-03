@@ -8,7 +8,7 @@ import (
   "io/ioutil"
   "os"
   "encoding/json"
-  "context"
+  //"context"
   //"github.com/google/uuid"
 )
 
@@ -63,7 +63,7 @@ func spinnerNotifyChannel(c chan chanMessage) {
   	Handler:        router,
   }
   router.HandleFunc("/joinFinished", func(w http.ResponseWriter, r *http.Request) {
-    defer s.Shutdown(context.Background())
+    //defer s.Shutdown(context.Background())
     var res chanMessage
     body, err := ioutil.ReadAll(r.Body)
     if err != nil {
