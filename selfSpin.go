@@ -63,6 +63,7 @@ func spinnerNotifyChannel(c chan chanMessage) {
   	Handler:        router,
   }
   router.HandleFunc("/joinFinished", func(w http.ResponseWriter, r *http.Request) {
+    defer s.Shutdown(context.Background())
     var res chanMessage
     body, err := ioutil.ReadAll(r.Body)
     if err != nil {
@@ -74,9 +75,9 @@ func spinnerNotifyChannel(c chan chanMessage) {
       log.Println(err)
       return
     }
+    w.WriteHeader(http.StatusOK)
     // get the notice from started spinner
     c <- res
-    s.Shutdown(context.Background())
   })
   log.Fatal(s.ListenAndServe())
 }
