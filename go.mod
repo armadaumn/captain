@@ -11,6 +11,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/mux v1.7.4
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	golang.org/x/net v0.0.0-20200114155413-6afb5195e5aa
 )
