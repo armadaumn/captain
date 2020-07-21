@@ -4,10 +4,19 @@ import (
   "github.com/armadanet/captain/dockercntrl"
   "github.com/armadanet/comms"
   "log"
+  "google.golang.org/grpc"
+  "github.com/armadanet/spinner/spinresp"
+  "time"
+  "context"
 )
 
 // Dial a socket connection to a given url. Listen for reads and writes
 func (c *Captain) Dial(dailurl string) error {
+  var opts []grpc.DialOption
+  opts = append(opts, grpc.WithInsecure())
+  conn, err := grpc.Dial(dialurl, opts...)
+  if err != nil {return err}
+  
   socket, err := comms.EstablishSocket(dailurl)
   if err != nil {return err}
   var config dockercntrl.Config

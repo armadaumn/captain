@@ -10,7 +10,6 @@ import (
 // Captain holds state information and an exit mechanism.
 type Captain struct {
   state   *dockercntrl.State
-  exit    chan interface{}
   storage bool
   name    string
 }
@@ -29,18 +28,54 @@ func New(name string) (*Captain, error) {
 // Connects to a given spinner and runs an infinite loop.
 // This loop is because the dial runs a goroutine, which
 // stops if the main thread closes.
-func (c *Captain) Run(dialurl string) {
-  err := c.Dial(dialurl)
-  if err != nil {
-    log.Println(err)
-    return
-  }
+func (c *Captain) Run(dialurl string) error {
+  var opts []grpc.DialOption
+  opts = append(opts, grpc.WithInsecure())
+  conn, err := grpc.Dial(dialurl, opts...)
+  if err != nil {return err}
+  defer conn.Close()
+  client := spinresp.NewSpinnerClient(conn)
   c.state.GetNetwork()
   c.ConnectStorage()
-  select {
-  case <- c.exit:
+
+  request := &spinresp.JoinRequest{
+    CaptianId: &spinresp.UUID{
+      Value: c.name,
+    },
+  }
+  ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+  defer cancel()
+  stream, err := client.Attach(ctx, request)
+  if err != nil {return err}
+  var wg sync.WaitGroup
+  for {
+    task, err := stream.Recv()
+    if err == io.EOF {
+      wg.Wait()
+      return nil
+    }
+    if err != nil {return err}
+    clientstream, err := client.Run(ctx)
+    if err != nil {return err}
+    wg.Add(1)
+    go func() {
+      defer wg.Done()
+      c.ExecuteTask(task, clientstream)
+    }()
+    log.Println(task)
   }
 }
+
+func (c *Captian) ExecuteTask(task *spinresp.TaskRequest, stream spinresp.Spinner_RunClient) {
+  config, err := dockercntrl.TaskRequestConfig(task)
+  if err != nil {
+    log.Fatal(err)
+    return
+  }
+  
+
+}
+
 
 // Executes a given config, waiting to print output.
 // Should be changed to logging or a logging system.
