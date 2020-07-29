@@ -18,5 +18,5 @@ func (c *Captain) ConnectStorage() {
   }
   c.state.VolumeCreate("cargo")
   storageconfig.AddMount("cargo")
-  go c.ExecuteConfig(storageconfig, nil)
+  // go c.ExecuteConfig(storageconfig, nil)
 }

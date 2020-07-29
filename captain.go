@@ -4,7 +4,11 @@ package captain
 import (
   "log"
   "github.com/armadanet/captain/dockercntrl"
-  "github.com/armadanet/spinner/spinresp"
+  "github.com/armadanet/spinner/spincomm"
+  "google.golang.org/grpc"
+  "context"
+  "time"
+  "io"
 )
 
 // Captain holds state information and an exit mechanism.
@@ -34,12 +38,13 @@ func (c *Captain) Run(dialurl string) error {
   conn, err := grpc.Dial(dialurl, opts...)
   if err != nil {return err}
   defer conn.Close()
-  client := spinresp.NewSpinnerClient(conn)
-  c.state.GetNetwork()
-  c.ConnectStorage()
+  log.Println("Connected")
+  client := spincomm.NewSpinnerClient(conn)
+  // c.state.GetNetwork()
+  // c.ConnectStorage()
 
-  request := &spinresp.JoinRequest{
-    CaptianId: &spinresp.UUID{
+  request := &spincomm.JoinRequest{
+    CaptainId: &spincomm.UUID{
       Value: c.name,
     },
   }
@@ -47,77 +52,88 @@ func (c *Captain) Run(dialurl string) error {
   defer cancel()
   stream, err := client.Attach(ctx, request)
   if err != nil {return err}
-  var wg sync.WaitGroup
+  log.Println("Attached")
   for {
     task, err := stream.Recv()
     if err == io.EOF {
-      wg.Wait()
+      log.Println("EOF")
       return nil
     }
-    if err != nil {return err}
-    clientstream, err := client.Run(ctx)
-    if err != nil {return err}
-    wg.Add(1)
-    go func() {
-      defer wg.Done()
-      c.ExecuteTask(task, clientstream)
-    }()
+    if err != nil {
+      return err
+    }
     log.Println(task)
   }
+  return nil
+  // var wg sync.WaitGroup
+  // for {
+  //   task, err := stream.Recv()
+  //   if err == io.EOF {
+  //     wg.Wait()
+  //     return nil
+  //   }
+  //   if err != nil {return err}
+  //   clientstream, err := client.Run(ctx)
+  //   if err != nil {return err}
+  //   wg.Add(1)
+  //   go func() {
+  //     defer wg.Done()
+  //     c.ExecuteTask(task, clientstream)
+  //   }()
+  //   log.Println(task)
+  // }
 }
 
-func (c *Captian) ExecuteTask(task *spinresp.TaskRequest, stream spinresp.Spinner_RunClient) {
-  config, err := dockercntrl.TaskRequestConfig(task)
-  if err != nil {
-    log.Fatal(err)
-    return
-  }
-  
-
-}
+// func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinner_RunClient) {
+//   config, err := dockercntrl.TaskRequestConfig(task)
+//   if err != nil {
+//     log.Fatal(err)
+//     return
+//   }
+// }
 
 
 // Executes a given config, waiting to print output.
 // Should be changed to logging or a logging system.
 // Kubeedge uses Mosquito for example.
-func (c *Captain) ExecuteConfig(config *dockercntrl.Config, write chan interface{}) {
-  container, err := c.state.Create(config)
-  if err != nil {
-    log.Println(err)
-    return
-  }
-  // For debugging
-  config.Storage = true
-  // ^^ Remove
-  if config.Storage {
-    log.Println("Storage in Config")
-    if !c.storage {
-      log.Println("Establishing Storage")
-      c.storage = true
-      c.ConnectStorage()
-    } else {
-      log.Println("Storage already exists")
-    }
-    err = c.state.NetworkConnect(container)
-    if err != nil {
-      log.Println(err)
-      return
-    }
-  } else {
-    log.Println("No storage in config")
-  }
-  s, err := c.state.Run(container)
-  if err != nil {
-    log.Println(err)
-    return
-  }
-  log.Println("Container Output: ")
-  log.Println(*s)
-  if write != nil {
-    write <- &spinresp.Response{
-      Id: config.Id,
-      Code: spinresp.Success,
-      Data: *s,
-    }
-  }
-}
+// func (c *Captain) ExecuteConfig(config *dockercntrl.Config, write chan interface{}) {
+//   container, err := c.state.Create(config)
+//   if err != nil {
+//     log.Println(err)
+//     return
+//   }
+//   // For debugging
+//   config.Storage = true
+//   // ^^ Remove
+//   if config.Storage {
+//     log.Println("Storage in Config")
+//     if !c.storage {
+//       log.Println("Establishing Storage")
+//       c.storage = true
+//       c.ConnectStorage()
+//     } else {
+//       log.Println("Storage already exists")
+//     }
+//     err = c.state.NetworkConnect(container)
+//     if err != nil {
+//       log.Println(err)
+//       return
+//     }
+//   } else {
+//     log.Println("No storage in config")
+//   }
+//   s, err := c.state.Run(container)
+//   if err != nil {
+//     log.Println(err)
+//     return
+//   }
+//   log.Println("Container Output: ")
+//   log.Println(*s)
+//   if write != nil {
+//     write <- &spincomm.Response{
+//       Id: config.Id,
+//       Code: spincomm.Success,
+//       Data: *s,
+//     }
+//   }
+// }

@@ -5,9 +5,9 @@ import (
   "github.com/docker/docker/api/types/mount"
   "github.com/docker/go-connections/nat"
   "github.com/phayes/freeport"
-  "github.com/google/uuid"
+  // "github.com/google/uuid"
   "strconv"
-  "github.com/armadanet/spinner/spinresp"
+  "github.com/armadanet/spinner/spincomm"
 )
 
 // Limits hold the set of limits for a given container.
@@ -33,10 +33,11 @@ const (
   LABEL = "nebula-id"
 )
 
-func TaskRequestConfig(task *spinresp.TaskRequest) (*Config, error) {
+func TaskRequestConfig(task *spincomm.TaskRequest) (*Config, error) {
   config := &Config{
-    Id: task.Id,
+    Id: task.GetTaskId().GetValue(),
   }
+  return config, nil
 }
 
 func (c *Config) AddMount(name string) {
@@ -52,7 +53,7 @@ func (c *Config) AddMount(name string) {
 // Converts a dockercntrl.Config into the necessary docker-go-sdk configs
 func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
   var id string
-  if c.Id != nil {id = c.Id}
+  if c.Id != "" {id = c.Id}
   config := &container.Config{
     Image: c.Image,
     Cmd: c.Cmd,

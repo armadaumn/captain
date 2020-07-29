@@ -2,6 +2,7 @@ module github.com/armadanet/captain
 
 go 1.13
 
+replace github.com/armadanet/spinner => ../spinner
 replace github.com/armadanet/captain/dockercntrl => ./dockercntrl
 
 require (
