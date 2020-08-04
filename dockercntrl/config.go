@@ -13,6 +13,7 @@ import (
 // Limits hold the set of limits for a given container.
 type Limits struct {
   CPUShares int64     `json:"cpushares"`
+  Memory    int64     `json:"Memory limit (in bytes)"`
 }
 
 // Config represents the configuration to build a new container.

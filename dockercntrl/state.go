@@ -1,12 +1,14 @@
 package dockercntrl
 
 import (
+  "encoding/json"
   "github.com/docker/docker/client"
   "golang.org/x/net/context"
   "github.com/docker/docker/api/types"
   "github.com/docker/docker/api/types/filters"
   "github.com/docker/docker/api/types/volume"
   "bytes"
+  "io/ioutil"
   "strings"
   "log"
   "net/http"
@@ -82,12 +84,15 @@ func (s *State) Run(c *Container) (*string, error) {
 
 // List returns all nebula-specific docker containers, determined by
 // docker label
-func (s *State) List() ([]*Container, error) {
+func (s *State) List(allFilter bool, nebulaOnly bool) ([]*Container, error) {
   result := []*Container{}
   nebulaFilter := filters.NewArgs()
-  nebulaFilter.Add("label", "nebula-id=captain")
+  if nebulaOnly {
+    nebulaFilter.Add("label", "nebula-id=captain")
+  }
+
   resp, err := s.Client.ContainerList(s.Context, types.ContainerListOptions{
-    All: true,
+    All: allFilter,
     Filters: nebulaFilter,
   })
   if err != nil {
@@ -142,4 +147,72 @@ func (s *State) VolumeCreate(name string) error {
   vol, err := s.Client.VolumeCreate(s.Context, v)
   log.Println(vol)
   return err
+}
+
+// Get container detailed information, equivalent to docker inspect
+func (s *State) ContainerInspect(c *Container) (types.ContainerJSON, error) {
+  resp, err := s.Client.ContainerInspect(s.Context, c.ID)
+  if err != nil {
+    return resp, err
+  }
+  return resp, nil
+}
+
+// Get information of machine (docker server)
+func (s *State) MachineInfo() (types.Info, error) {
+  resp, err := s.Client.Info(s.Context)
+  if err != nil {
+    return resp, err
+  }
+  return resp, nil
+}
+
+func (s *State) Stats(cID string) (types.ContainerStats, error){
+  stat, err := s.Client.ContainerStats(s.Context, cID, false)
+  if err != nil {
+    return stat, err
+  }
+  return stat, err
+}
+
+func (s *State) UsedPorts(c *Container) ([]string, error) {
+  var ports []string
+  resp, err := s.ContainerInspect(c)
+  if err != nil {
+    return nil, err
+  }
+  for _, portMap := range resp.NetworkSettings.Ports {
+    for _, portArray := range portMap {
+      ports = append(ports, portArray.HostPort)
+    }
+  }
+  return ports, nil
+}
+
+func (s *State) RealtimeRC(cID string) (float64, float64, error) {
+  resp, err := s.Stats(cID)
+  if err != nil {
+    return 0, 0, err
+  }
+  buf, _ := ioutil.ReadAll(resp.Body)
+  var stats types.Stats
+  json.Unmarshal(buf, &stats)
+
+  var cpuPercent, memPercent float64
+  containerDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
+  systemDelta := float64(stats.CPUStats.SystemUsage - stats.PreCPUStats.SystemUsage)
+  if containerDelta > 0.0 && systemDelta > 0.0 {
+    numCPUs := float64(len(stats.CPUStats.CPUUsage.PercpuUsage))
+    cpuPercent = (containerDelta/systemDelta) * numCPUs * 100.0
+  } else {
+    cpuPercent = 0
+  }
+
+  memLimit := float64(stats.MemoryStats.Limit)
+  if memLimit != 0 {
+    memPercent = float64(stats.MemoryStats.Usage) / memLimit * 100.0
+  } else {
+    memPercent = 0
+  }
+  return cpuPercent, memPercent, nil
 }
