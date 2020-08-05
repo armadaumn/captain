@@ -57,13 +57,13 @@ func (c *Captain) Run(dialurl string) error {
       Value: c.name,
     },
   }
-  ctx, cancel := context.WithTimeout(context.Background(), 50*time.Second)
+  ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
   defer cancel()
   stream, err := client.Attach(ctx, request)
   if err != nil {return err}
   log.Println("Attached")
   // Send running status
-  //go c.SendStatus(ctx, client)
+  go c.SendStatus(ctx, client)
   for {
     task, err := stream.Recv()
     if err == io.EOF {
