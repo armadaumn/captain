@@ -7,7 +7,8 @@ import (
   "github.com/armadanet/spinner/spincomm"
   "google.golang.org/grpc"
   "context"
-  "time"
+  // "time"
+  "sync"
   "io"
 )
 
@@ -48,50 +49,77 @@ func (c *Captain) Run(dialurl string) error {
       Value: c.name,
     },
   }
-  ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+  ctx, cancel := context.WithCancel(context.Background())
   defer cancel()
   stream, err := client.Attach(ctx, request)
   if err != nil {return err}
   log.Println("Attached")
+  var wg sync.WaitGroup
   for {
     task, err := stream.Recv()
     if err == io.EOF {
       log.Println("EOF")
+      wg.Wait()
       return nil
     }
     if err != nil {
+      wg.Wait()
       return err
     }
-    log.Println(task)
+    log.Println("Task:", task)
+    logstream, err := client.Run(ctx)
+    if err != nil {
+      wg.Wait()
+      return err
+    }
+    wg.Add(1)
+    go func() {
+      defer wg.Done()
+      c.ExecuteTask(task, logstream)
+    }()
   }
   return nil
-  // var wg sync.WaitGroup
-  // for {
-  //   task, err := stream.Recv()
-  //   if err == io.EOF {
-  //     wg.Wait()
-  //     return nil
-  //   }
-  //   if err != nil {return err}
-  //   clientstream, err := client.Run(ctx)
-  //   if err != nil {return err}
-  //   wg.Add(1)
-  //   go func() {
-  //     defer wg.Done()
-  //     c.ExecuteTask(task, clientstream)
-  //   }()
-  //   log.Println(task)
-  // }
 }
 
-// func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinner_RunClient) {
-//   config, err := dockercntrl.TaskRequestConfig(task)
-//   if err != nil {
-//     log.Fatal(err)
-//     return
-//   }
-// }
+func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinner_RunClient) {
+  config, err := dockercntrl.TaskRequestConfig(task)
+  if err != nil {
+    log.Fatal(err)
+    return
+  }
+  c.ExecuteConfig(config, stream)
+}
 
+
+func (c *Captain) ExecuteConfig(config *dockercntrl.Config, stream spincomm.Spinner_RunClient) {
+  container, err := c.state.Create(config)
+  if err != nil {
+    log.Println(err)
+    return
+  }
+  logReader, err := c.state.Run(container)
+  if err != nil {
+    log.Println(err)
+    return 
+  }
+  buf := make([]byte, 128)
+  for {
+    n, err := logReader.Read(buf)
+    if err != nil {
+      log.Println(err)
+      stream.CloseAndRecv()
+      return
+    }
+    if n > 0 {
+      logValue := string(buf[:n])
+      log.Println("Log:", logValue)
+      stream.Send(&spincomm.TaskLog{
+        TaskId: &spincomm.UUID{Value: config.Id},
+        Log: logValue,
+      })
+    }
+  }
+}
 
 // Executes a given config, waiting to print output.
 // Should be changed to logging or a logging system.
