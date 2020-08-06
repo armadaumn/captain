@@ -9,10 +9,11 @@ import (
   "github.com/docker/docker/api/types/volume"
   "bytes"
   "io/ioutil"
-  "strings"
+  // "strings"
   "log"
   "net/http"
   "net"
+  "io"
 )
 
 // State holds the structs required to manipulate the docker daemon
@@ -64,7 +65,7 @@ func (s *State) Create(configuration *Config) (*Container, error) {
 
 // Run runs a built docker container. It follows the execution to display
 // logs at the end of execution.
-func (s *State) Run(c *Container) (*string, error) {
+func (s *State) Run(c *Container) (io.ReadCloser, error) {
   if err := s.Client.ContainerStart(s.Context, c.ID, types.ContainerStartOptions{}); err != nil {
 		return nil, err
 	}
@@ -72,14 +73,19 @@ func (s *State) Run(c *Container) (*string, error) {
   log.Println(err)
 	if err != nil {return nil, err}
 
-	out, err := s.Client.ContainerLogs(s.Context, c.ID, types.ContainerLogsOptions{ShowStdout: true})
+	out, err := s.Client.ContainerLogs(s.Context, c.ID, types.ContainerLogsOptions{
+    ShowStdout: true,
+    ShowStderr: true,
+    Follow: true,
+  })
 	if err != nil {
 		return nil, err
-	}
-  buf := new(bytes.Buffer)
-  buf.ReadFrom(out)
-  logs := strings.TrimSuffix(strings.TrimSuffix(buf.String(), "\n"), "\r")
-  return &logs, nil
+  }
+  return out, nil
+  // buf := new(bytes.Buffer)
+  // buf.ReadFrom(out)
+  // logs := strings.TrimSuffix(strings.TrimSuffix(buf.String(), "\n"), "\r")
+  //return &logs, nil
 }
 
 // List returns all nebula-specific docker containers, determined by

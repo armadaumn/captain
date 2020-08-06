@@ -25,7 +25,7 @@ type Config struct {
   Name      string      `json:"name"`
   Limits    *Limits     `json:"limits"`
   Env       []string    `json:"env"`
-  Port      int         `json:"port"`
+  Port      int64       `json:"port"`
   Storage   bool        `json:"storage"`
   mounts    []mount.Mount
 }
@@ -34,9 +34,23 @@ const (
   LABEL = "nebula-id"
 )
 
+func TaskRequestLimits(limits *spincomm.TaskLimits) *Limits {
+  return &Limits{
+    CPUShares: limits.GetCpuShares(), 
+  }
+}
+
 func TaskRequestConfig(task *spincomm.TaskRequest) (*Config, error) {
   config := &Config{
     Id: task.GetTaskId().GetValue(),
+    Image: task.GetImage(),
+    Cmd: task.GetCommand(),
+    Tty: task.GetTty(),
+    Name: task.GetName(),
+    Limits: TaskRequestLimits(task.GetLimits()),
+    Env: task.GetEnv(),
+    Port: task.GetPort(),
+    Storage: false,
   }
   return config, nil
 }
@@ -75,7 +89,7 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
   // If port is supplied, open that port on the container thru
   // a random open port on the host machine.
   if c.Port != 0 {
-    port, err := nat.NewPort("tcp", strconv.Itoa(c.Port))
+    port, err := nat.NewPort("tcp", strconv.FormatInt(c.Port,10))
     if err != nil {return config, hostConfig, err}
     config.ExposedPorts = nat.PortSet{port: struct{}{}}
     openPort, err := freeport.GetFreePort()
