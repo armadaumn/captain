@@ -4,9 +4,9 @@ import (
   "github.com/docker/docker/api/types/container"
   "github.com/docker/docker/api/types/mount"
   "github.com/docker/go-connections/nat"
-  "github.com/phayes/freeport"
+  // "github.com/phayes/freeport"
   // "github.com/google/uuid"
-  "strconv"
+  // "strconv"
   "github.com/armadanet/spinner/spincomm"
 )
 
@@ -36,13 +36,14 @@ const (
 
 func TaskRequestLimits(limits *spincomm.TaskLimits) *Limits {
   return &Limits{
-    CPUShares: limits.GetCpuShares(), 
+    CPUShares: limits.GetCpuShares(),
+    Memory: limits.GetMemory(),
   }
 }
 
 func TaskRequestConfig(task *spincomm.TaskRequest) (*Config, error) {
   config := &Config{
-    Id: task.GetTaskId().GetValue(),
+    Id: task.GetAppId().GetValue(),
     Image: task.GetImage(),
     Cmd: task.GetCommand(),
     Tty: task.GetTty(),
@@ -77,27 +78,37 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
     Labels: map[string]string{
       LABEL: id, // To identify as belonging to nebula
     },
+    ExposedPorts: nat.PortSet{
+        "8080/tcp": struct{}{},
+    },
   }
+
+  port, _ := nat.NewPort("tcp", "8080")
+  // if err != nil {return config, hostConfig, err}
 
   hostConfig := &container.HostConfig{
     Resources: container.Resources{
       CPUShares: c.Limits.CPUShares,
     },
     Mounts: c.mounts,
+    PortBindings: nat.PortMap{
+      port: []nat.PortBinding{{HostIP: "", HostPort: "8080"}},
+    },
+    NetworkMode: "spinner-local-network",
   }
 
   // If port is supplied, open that port on the container thru
   // a random open port on the host machine.
-  if c.Port != 0 {
-    port, err := nat.NewPort("tcp", strconv.FormatInt(c.Port,10))
-    if err != nil {return config, hostConfig, err}
-    config.ExposedPorts = nat.PortSet{port: struct{}{}}
-    openPort, err := freeport.GetFreePort()
-    if err != nil {return config, hostConfig, err}
-    hostConfig.PortBindings = nat.PortMap{
-      port: []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: strconv.Itoa(openPort)}},
-    }
-  }
+  // if c.Port != 0 {
+  //   port, err := nat.NewPort("tcp", strconv.FormatInt(c.Port,10))
+  //   if err != nil {return config, hostConfig, err}
+  //   config.ExposedPorts = nat.PortSet{port: struct{}{}}
+  //   openPort, err := freeport.GetFreePort()
+  //   if err != nil {return config, hostConfig, err}
+  //   hostConfig.PortBindings = nat.PortMap{
+  //     port: []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: strconv.FormatInt(c.Port, 10)}},
+  //   }
+  // }
 
   return config, hostConfig, nil
 }

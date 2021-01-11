@@ -2,28 +2,22 @@
 package captain
 
 import (
-  "log"
+  "context"
   "github.com/armadanet/captain/dockercntrl"
   "github.com/armadanet/spinner/spincomm"
   "google.golang.org/grpc"
-  "context"
+  "io"
+  "log"
   // "time"
   "sync"
-  "io"
-  "time"
 )
 
 // Captain holds state information and an exit mechanism.
 type Captain struct {
-  state    *dockercntrl.State
-  storage  bool
-  name     string
-  resource *Resource
-}
-
-type Resource struct {
-  totalResource      dockercntrl.Limits
-  unassignedResource dockercntrl.Limits
+  state   *dockercntrl.State
+  storage bool
+  name    string
+  rm      *ResourceManager
 }
 
 // Constructs a new captain.
@@ -33,10 +27,10 @@ func New(name string) (*Captain, error) {
   res, err := initResource(state)
   if err != nil {return nil, err}
   return &Captain{
-    state: state,
+    state:   state,
     storage: false,
-    name: name,
-    resource: res,
+    name:    name,
+    rm:      res,
   }, nil
 }
 
@@ -65,7 +59,7 @@ func (c *Captain) Run(dialurl string) error {
   if err != nil {return err}
   log.Println("Attached")
   // Send running status
-  go c.SendStatus(ctx, client)
+  go c.PeriodicalUpdate(ctx, client)
 
   var wg sync.WaitGroup
   for {
@@ -95,6 +89,17 @@ func (c *Captain) Run(dialurl string) error {
 }
 
 func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinner_RunClient) {
+  cargoSpec := task.GetTaskspec().GetCargoSpec()
+  if cargoSpec != nil {
+    cargoIP := cargoSpec.GetIPs()[0]
+    cargoPort := cargoSpec.GetPorts()[0]
+    appID := task.GetAppId().GetValue()
+    task.Command = append(task.Command, cargoIP)
+    task.Command = append(task.Command, cargoPort)
+    task.Command = append(task.Command, appID)
+    task.Command = append(task.Command, "1")
+  }
+  log.Println("Task:", task)
   config, err := dockercntrl.TaskRequestConfig(task)
   if err != nil {
     log.Fatal(err)
@@ -131,111 +136,6 @@ func (c *Captain) ExecuteConfig(config *dockercntrl.Config, stream spincomm.Spin
       })
     }
   }
-}
-
-func (c *Captain) SendStatus(ctx context.Context, client spincomm.SpinnerClient) {
-  ctx, cancel := context.WithCancel(ctx)
-  defer cancel()
-
-  //start here
-  for {
-    res := c.resource
-    containers, err := c.state.List(false, false)
-    if err != nil {
-      log.Fatalln(err)
-    }
-    var (
-      cpuUsage         float64
-      memUsage         float64
-      activeContainers []string
-      //images           []string
-      usedPorts        []string
-    )
-    // Get Status of each active container
-    for _, container := range containers {
-      cpuPercent, memPercent, err := c.state.RealtimeRC(container.ID)
-      if err != nil {
-        log.Fatalln(err)
-      }
-      cpuUsage = cpuUsage + cpuPercent
-      memUsage = memUsage + memPercent
-      activeContainers = append(activeContainers, container.Image)
-
-      ports, err := c.state.UsedPorts(container)
-      if err != nil {
-        log.Fatalln(err)
-      }
-      usedPorts = append(usedPorts, ports[:]...)
-    }
-
-    cpu := spincomm.ResourceStatus{
-      Total:      res.totalResource.CPUShares,
-      Unassigned: res.unassignedResource.CPUShares,
-      Assigned:   res.totalResource.CPUShares - res.unassignedResource.CPUShares,
-      Available:  100.0 - cpuUsage,
-    }
-
-    mem := spincomm.ResourceStatus{
-      Total:      res.totalResource.Memory,
-      Unassigned: res.unassignedResource.Memory,
-      Assigned:   res.totalResource.Memory - res.unassignedResource.Memory,
-      Available:  100.0 - memUsage,
-    }
-    hostResource := make(map[string]*spincomm.ResourceStatus)
-    hostResource["CPU"] = &cpu
-    hostResource["Memory"] = &mem
-
-    nodeInfo := spincomm.NodeInfo{
-      CaptainId: &spincomm.UUID{
-        Value: c.name,
-      },
-      HostResource: hostResource,
-      UsedPorts: usedPorts,
-      ContainerStatus: &spincomm.ContainerStatus{
-        ActiveContainer: activeContainers,
-        Images:          activeContainers,
-      },
-    }
-
-    // calling grpc
-    r, err := client.Update(ctx, &nodeInfo)
-    if err != nil {
-      log.Fatalln(err)
-    }
-    log.Println(r)
-    time.Sleep(10 * time.Second)
-  }
-}
-
-func initResource(state *dockercntrl.State) (*Resource, error) {
-  res, err := state.MachineInfo()
-  if err != nil {
-    log.Fatalln(err)
-    return nil, err
-  }
-  total := dockercntrl.Limits{
-    CPUShares: int64(res.NCPU),
-    Memory:    res.MemTotal,
-  }
-
-  avail := total
-  list, err := state.List(false, false)
-  if err != nil {
-    log.Fatalln(err)
-    return nil, err
-  }
-  for _, container := range list {
-    resp, err := state.ContainerInspect(container)
-    if err != nil {
-      log.Fatalln(err)
-    }
-    avail.CPUShares -= resp.HostConfig.CPUShares
-    avail.Memory -= resp.HostConfig.Memory
-  }
-  return &Resource{
-    totalResource:      total,
-    unassignedResource: avail,
-  }, nil
 }
 
 

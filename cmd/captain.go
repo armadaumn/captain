@@ -12,7 +12,7 @@ func main() {
 
   cap, err := captain.New("captain")
   if err != nil {log.Fatalln(err)}
-  err = cap.Run("localhost:5912")
+  err = cap.Run("spinner:5912")
   if err != nil {
     log.Fatalln(err)
   }
