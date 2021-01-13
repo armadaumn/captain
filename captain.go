@@ -10,16 +10,16 @@ import (
 	"io"
 	"log"
 	"math/rand"
-    "time"
 	"sync"
+	"time"
 )
 
 // Captain holds state information and an exit mechanism.
 type Captain struct {
-	state   *dockercntrl.State
-	storage bool
-	name    string
-	rm      *ResourceManager
+	state      *dockercntrl.State
+	storage    bool
+	name       string
+	rm         *ResourceManager
 }
 
 // Constructs a new captain.
@@ -97,6 +97,7 @@ func (c *Captain) Run(dialurl string) error {
 		if err == io.EOF {
 			log.Println("EOF")
 			wg.Wait()
+			c.RemoveTask()
 			return nil
 		}
 		if err != nil {
@@ -107,6 +108,7 @@ func (c *Captain) Run(dialurl string) error {
 		logstream, err := client.Run(ctx)
 		if err != nil {
 			wg.Wait()
+			c.RemoveTask()
 			return err
 		}
 		wg.Add(1)
@@ -136,36 +138,48 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 		return
 	}
 	c.RequestResource(config)
-	c.ExecuteConfig(config, stream)
-}
 
-func (c *Captain) ExecuteConfig(config *dockercntrl.Config, stream spincomm.Spinner_RunClient) {
+	// Start the task
 	container, err := c.state.Create(config)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	c.appendTask(task.GetAppId().GetValue(), config.Id, container)
+
 	logReader, err := c.state.Run(container)
 	if err != nil {
 		log.Println(err)
 		return
 	}
+
 	buf := make([]byte, 128)
 	for {
-		n, err := logReader.Read(buf)
+		_, err := logReader.Read(buf)
 		if err != nil {
 			log.Println(err)
-			stream.CloseAndRecv()
+			c.removeTask(task.GetAppId().GetValue(), config.Id)
+			//c.state.Kill(container)
+			c.state.Remove(container)
+			//stream.CloseAndRecv()
 			return
 		}
-		if n > 0 {
-			logValue := string(buf[:n])
-			log.Println("Log:", logValue)
-			stream.Send(&spincomm.TaskLog{
-				TaskId: &spincomm.UUID{Value: config.Id},
-				//Log: logValue,
-			})
-		}
+		//if n > 0 {
+		//	logValue := string(buf[:n])
+		//	log.Println("Log:", logValue)
+		//	stream.Send(&spincomm.TaskLog{
+		//		TaskId: &spincomm.UUID{Value: config.Id},
+		//		//Log: logValue,
+		//	})
+		//}
+	}
+}
+
+func (c *Captain) RemoveTask() {
+	taskTable := c.getTaskTable()
+	for _, container := range taskTable {
+		c.state.Kill(container)
+		c.state.Remove(container)
 	}
 }
 

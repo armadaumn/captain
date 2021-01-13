@@ -9,10 +9,12 @@ import (
 )
 
 type ResourceManager struct {
-	mutex    *sync.Mutex
-	context  context.Context
-	client   spincomm.SpinnerClient
-	resource *Resource
+	mutex      *sync.Mutex
+	context    context.Context
+	client     spincomm.SpinnerClient
+	resource   *Resource
+	tasksTable map[string]*dockercntrl.Container
+	appIDs     map[string]struct{}
 }
 
 type Resource struct {
@@ -103,6 +105,7 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 	c.rm.mutex.Lock()
 	defer c.rm.mutex.Unlock()
 
+	// Resources
 	cpu := spincomm.ResourceStatus{
 		Total:      c.rm.resource.totalResource.CPUShares,
 		Unassigned: c.rm.resource.unassignedResource.CPUShares,
@@ -120,6 +123,16 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 	hostResource["CPU"] = &cpu
 	hostResource["Memory"] = &mem
 
+	// Task Info
+	appList := make([]string, len(c.rm.appIDs))
+	for id, _ := range c.rm.appIDs {
+		appList = append(appList, id)
+	}
+	taskList := make([]string, len(c.rm.tasksTable))
+	for id, _ := range c.rm.appIDs {
+		taskList = append(taskList, id)
+	}
+
 	nodeInfo := spincomm.NodeInfo{
 		CaptainId: &spincomm.UUID{
 			Value: c.name,
@@ -130,6 +143,8 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 			ActiveContainer: c.rm.resource.activeContainers,
 			Images:          c.rm.resource.activeContainers,
 		},
+		AppIDs: appList,
+		TaskIDs: taskList,
 	}
 	return nodeInfo
 }
@@ -176,5 +191,31 @@ func initResource(state *dockercntrl.State) (*ResourceManager, error) {
 			totalResource:      total,
 			unassignedResource: avail,
 		},
+		tasksTable: make(map[string]*dockercntrl.Container),
+		appIDs: make(map[string]struct{}),
 	}, nil
+}
+
+func (c *Captain) appendTask(appID string, taskID string, container *dockercntrl.Container) {
+	c.rm.mutex.Lock()
+	defer c.rm.mutex.Unlock()
+
+	log.Println("append task")
+	c.rm.appIDs[appID] = struct{}{}
+	c.rm.tasksTable[taskID] = container
+}
+
+func (c *Captain) removeTask(appID string, taskID string) {
+	c.rm.mutex.Lock()
+	defer c.rm.mutex.Unlock()
+
+	delete(c.rm.appIDs, appID)
+	delete(c.rm.tasksTable, taskID)
+}
+
+func (c *Captain) getTaskTable() map[string]*dockercntrl.Container {
+	c.rm.mutex.Lock()
+	defer c.rm.mutex.Unlock()
+
+	return c.rm.tasksTable
 }
