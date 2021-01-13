@@ -4,6 +4,7 @@ package captain
 import (
 	"context"
 	"github.com/armadanet/captain/dockercntrl"
+	"github.com/armadanet/captain/internal/utils"
 	"github.com/armadanet/spinner/spincomm"
 	"google.golang.org/grpc"
 	"io"
@@ -60,13 +61,26 @@ func (c *Captain) Run(dialurl string) error {
 	client := spincomm.NewSpinnerClient(conn)
 	// c.state.GetNetwork()
 	// c.ConnectStorage()
-
 	log.Println(c.name)
+
+	synth := true
+	ip := "0.0.0.0"
+	lat := 0.0
+	lon := 0.0
+	if !synth {
+		ip = utils.GetPublicIP()
+		lat, lon = utils.GetLocationInfo(ip, synth)
+	}
+
 	request := &spincomm.JoinRequest{
 		CaptainId: &spincomm.UUID{
 			Value: c.name,
 		},
+		IP: ip,
+		Lat: lat,
+		Lon: lon,
 	}
+	log.Println(request)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	stream, err := client.Attach(ctx, request)
