@@ -13,5 +13,5 @@ build:
 	cd ../.. && docker build -t $(IMAGE) -f captain/build/Dockerfile .
 
 run:
-	docker run -it -v /var/run/docker.sock:/var/run/docker.sock --net $(NETWORK) $(IMAGE) 
+	docker run -it --rm -v /var/run/docker.sock:/var/run/docker.sock --net $(NETWORK) $(IMAGE) 
 

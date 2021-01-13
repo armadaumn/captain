@@ -6,7 +6,6 @@ import (
 	"github.com/armadanet/spinner/spincomm"
 	"log"
 	"sync"
-	"time"
 )
 
 type ResourceManager struct {
@@ -92,7 +91,7 @@ func (c *Captain) PeriodicalUpdate(ctx context.Context, client spincomm.SpinnerC
 		}
 		nodeInfo := c.GenNodeInfo()
 		c.SendStatus(&nodeInfo)
-		time.Sleep(10 * time.Second)
+		//time.Sleep(10 * time.Second)
 	}
 }
 
@@ -132,8 +131,8 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 }
 
 func (c *Captain) SendStatus(nodeInfo *spincomm.NodeInfo) {
-	c.rm.mutex.Lock()
-	defer c.rm.mutex.Unlock()
+	//c.rm.mutex.Lock()
+	//defer c.rm.mutex.Unlock()
 
 	r, err := c.rm.client.Update(c.rm.context, nodeInfo)
 	if err != nil {
