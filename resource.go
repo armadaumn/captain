@@ -9,9 +9,9 @@ import (
 )
 
 type ResourceManager struct {
-	mutex              *sync.Mutex
-	context context.Context
-	client spincomm.SpinnerClient
+	mutex    *sync.Mutex
+	context  context.Context
+	client   spincomm.SpinnerClient
 	resource *Resource
 }
 
@@ -57,13 +57,15 @@ func (c *Captain) UpdateRealTimeResource() error {
 		activeContainers []string
 		usedPorts        []string
 	)
+	cpuUsage := 0.0
+	memUsage := 0.0
 	for _, container := range containers {
 		cpuPercent, memPercent, err := c.state.RealtimeRC(container.ID)
 		if err != nil {
 			return err
 		}
-		c.rm.resource.cpuUsage += cpuPercent
-		c.rm.resource.memUsage += memPercent
+		cpuUsage += cpuPercent
+		memUsage += memPercent
 		activeContainers = append(activeContainers, container.Image)
 		c.rm.resource.activeContainers = activeContainers
 
@@ -74,6 +76,8 @@ func (c *Captain) UpdateRealTimeResource() error {
 		usedPorts = append(usedPorts, ports[:]...)
 		c.rm.resource.usedPorts = usedPorts
 	}
+	c.rm.resource.cpuUsage = cpuUsage
+	c.rm.resource.memUsage = memUsage
 	return nil
 }
 
