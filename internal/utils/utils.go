@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -22,13 +21,20 @@ type GeoLocInfo struct {
 
 // return the public of the calling node
 func GetPublicIP() string {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
-	log.Println(err)
-	defer conn.Close()
+	resp, err := http.Get("https://ipecho.net/plain")
+	if err != nil {
+		log.Println(err)
+		return "0.0.0.0"
+	}
+	defer resp.Body.Close()
+	ip, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "0.0.0.0"
+	}
 
-	publicIP := conn.LocalAddr().(*net.UDPAddr)
+	publicIP := string(ip)
 
-	return publicIP.IP.String()
+	return publicIP
 }
 
 // return the lat, lon of the calling node
