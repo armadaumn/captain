@@ -160,7 +160,7 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 			log.Println(err)
 			c.removeTask(task.GetAppId().GetValue(), config.Id)
 			//c.state.Kill(container)
-			c.state.Remove(container)
+			//c.state.Remove(container)
 			//stream.CloseAndRecv()
 			return
 		}
