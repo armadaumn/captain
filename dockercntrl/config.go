@@ -4,6 +4,7 @@ import (
   "github.com/docker/docker/api/types/container"
   "github.com/docker/docker/api/types/mount"
   "github.com/docker/go-connections/nat"
+  "github.com/phayes/freeport"
   "strconv"
 
   // "github.com/phayes/freeport"
@@ -89,6 +90,8 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
 
   //port, _ := nat.NewPort("tcp", "8080")
   // if err != nil {return config, hostConfig, err}
+  hostPort, _ := freeport.GetFreePort()
+  hostPortS := strconv.Itoa(hostPort)
 
   hostConfig := &container.HostConfig{
     Resources: container.Resources{
@@ -96,7 +99,7 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
     },
     Mounts: c.mounts,
     PortBindings: nat.PortMap{
-      port: []nat.PortBinding{{HostIP: "", HostPort: portS}},
+      port: []nat.PortBinding{{HostIP: "", HostPort: hostPortS}},
     },
     NetworkMode: "spinner-local-network",
   }
