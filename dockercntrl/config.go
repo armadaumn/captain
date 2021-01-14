@@ -4,6 +4,8 @@ import (
   "github.com/docker/docker/api/types/container"
   "github.com/docker/docker/api/types/mount"
   "github.com/docker/go-connections/nat"
+  "strconv"
+
   // "github.com/phayes/freeport"
   // "github.com/google/uuid"
   // "strconv"
@@ -70,6 +72,8 @@ func (c *Config) AddMount(name string) {
 func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
   var id string
   if c.Id != "" {id = c.Id}
+  portS := strconv.FormatInt(c.Port, 10)
+  port, _ := nat.NewPort("tcp", portS)
   config := &container.Config{
     Image: c.Image,
     Cmd: c.Cmd,
@@ -79,11 +83,11 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
       LABEL: id, // To identify as belonging to nebula
     },
     ExposedPorts: nat.PortSet{
-        "8080/tcp": struct{}{},
+        port: struct{}{},
     },
   }
 
-  port, _ := nat.NewPort("tcp", "8080")
+  //port, _ := nat.NewPort("tcp", "8080")
   // if err != nil {return config, hostConfig, err}
 
   hostConfig := &container.HostConfig{
@@ -92,7 +96,7 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
     },
     Mounts: c.mounts,
     PortBindings: nat.PortMap{
-      port: []nat.PortBinding{{HostIP: "", HostPort: "8080"}},
+      port: []nat.PortBinding{{HostIP: "", HostPort: portS}},
     },
     NetworkMode: "spinner-local-network",
   }
