@@ -12,7 +12,7 @@ func main() {
 
   cap, err := captain.New("captain")
   if err != nil {log.Fatalln(err)}
-  err = cap.Run("ec2-107-21-84-203.compute-1.amazonaws.com:5912")
+  err = cap.Run("ec2-34-238-242-228.compute-1.amazonaws.com:5912")
   if err != nil {
     log.Fatalln(err)
   }

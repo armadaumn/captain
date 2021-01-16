@@ -63,7 +63,7 @@ func (c *Captain) Run(dialurl string) error {
 	// c.ConnectStorage()
 	log.Println(c.name)
 
-	synth := true
+	synth := false
 	ip := "0.0.0.0"
 	lat := 0.0
 	lon := 0.0
