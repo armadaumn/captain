@@ -46,11 +46,11 @@ func TaskRequestLimits(limits *spincomm.TaskLimits) *Limits {
 
 func TaskRequestConfig(task *spincomm.TaskRequest) (*Config, error) {
   config := &Config{
-    Id: task.GetAppId().GetValue(),
+    Id: task.GetTaskId().GetValue(),
     Image: task.GetImage(),
     Cmd: task.GetCommand(),
     Tty: task.GetTty(),
-    Name: task.GetName(),
+    Name: task.GetTaskId().GetValue(),
     Limits: TaskRequestLimits(task.GetLimits()),
     Env: task.GetEnv(),
     Port: task.GetPort(),

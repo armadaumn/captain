@@ -28,7 +28,7 @@ func New(name string) (*Captain, error) {
 	if err != nil {
 		return nil, err
 	}
-	res, err := initResource(state)
+	res, err := initResourceManager(state)
 	if err != nil {
 		return nil, err
 	}

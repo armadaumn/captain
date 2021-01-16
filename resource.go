@@ -20,11 +20,49 @@ type ResourceManager struct {
 type Resource struct {
 	totalResource      dockercntrl.Limits
 	unassignedResource dockercntrl.Limits
-	cpuUsage         float64
-	memUsage         float64
-	activeContainers []string
+	cpuUsage           float64
+	memUsage           float64
+	activeContainers   []string
 	//images           []string
-	usedPorts        []string
+	usedPorts          map[string]string
+}
+
+func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
+	res, err := state.MachineInfo()
+	if err != nil {
+		log.Fatalln(err)
+		return nil, err
+	}
+	total := dockercntrl.Limits{
+		CPUShares: int64(res.NCPU),
+		Memory:    res.MemTotal,
+	}
+
+	avail := total
+	list, err := state.List(false, false)
+	if err != nil {
+		log.Fatalln(err)
+		return nil, err
+	}
+	for _, container := range list {
+		resp, err := state.ContainerInspect(container)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		avail.CPUShares -= resp.HostConfig.CPUShares
+		avail.Memory -= resp.HostConfig.Memory
+	}
+	return &ResourceManager{
+		mutex: &sync.Mutex{},
+		resource: &Resource{
+			totalResource:      total,
+			unassignedResource: avail,
+			activeContainers:   make([]string, 0),
+			usedPorts:          make(map[string]string),
+		},
+		tasksTable: make(map[string]*dockercntrl.Container),
+		appIDs: make(map[string]struct{}),
+	}, nil
 }
 
 func (c *Captain) RequestResource(config *dockercntrl.Config) {
@@ -55,10 +93,9 @@ func (c *Captain) UpdateRealTimeResource() error {
 	if err != nil {
 		return err
 	}
-	var (
-		activeContainers []string
-		usedPorts        []string
-	)
+
+	activeContainers := make([]string, 0)
+	usedPorts := make(map[string]string)
 	cpuUsage := 0.0
 	memUsage := 0.0
 	for _, container := range containers {
@@ -72,10 +109,15 @@ func (c *Captain) UpdateRealTimeResource() error {
 		c.rm.resource.activeContainers = activeContainers
 
 		ports, err := c.state.UsedPorts(container)
+
 		if err != nil {
 			return err
 		}
-		usedPorts = append(usedPorts, ports[:]...)
+		if len(ports) == 0{
+			usedPorts[container.Names[0][1:]] = ""
+		} else {
+			usedPorts[container.Names[0][1:]] = ports[0]
+		}
 		c.rm.resource.usedPorts = usedPorts
 	}
 	c.rm.resource.cpuUsage = cpuUsage
@@ -158,42 +200,6 @@ func (c *Captain) SendStatus(nodeInfo *spincomm.NodeInfo) {
 		log.Fatalln(err)
 	}
 	log.Println(r)
-}
-
-func initResource(state *dockercntrl.State) (*ResourceManager, error) {
-	res, err := state.MachineInfo()
-	if err != nil {
-		log.Fatalln(err)
-		return nil, err
-	}
-	total := dockercntrl.Limits{
-		CPUShares: int64(res.NCPU),
-		Memory:    res.MemTotal,
-	}
-
-	avail := total
-	list, err := state.List(false, false)
-	if err != nil {
-		log.Fatalln(err)
-		return nil, err
-	}
-	for _, container := range list {
-		resp, err := state.ContainerInspect(container)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		avail.CPUShares -= resp.HostConfig.CPUShares
-		avail.Memory -= resp.HostConfig.Memory
-	}
-	return &ResourceManager{
-		mutex: &sync.Mutex{},
-		resource: &Resource{
-			totalResource:      total,
-			unassignedResource: avail,
-		},
-		tasksTable: make(map[string]*dockercntrl.Container),
-		appIDs: make(map[string]struct{}),
-	}, nil
 }
 
 func (c *Captain) appendTask(appID string, taskID string, container *dockercntrl.Container) {
