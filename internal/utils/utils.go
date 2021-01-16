@@ -51,7 +51,7 @@ func GetLocationInfo(ip string, synth bool) (float64, float64) {
 		defer csvfile.Close()
 
 		r := csv.NewReader(csvfile)
-		randLineNumber := rand.Intn(100) + 1
+		randLineNumber := rand.Intn(11) + 1
 		currLineNum := 1
 		for {
 			record, err := r.Read()
