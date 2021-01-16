@@ -139,7 +139,7 @@ func (c *Captain) PeriodicalUpdate(ctx context.Context, client spincomm.SpinnerC
 		}
 		nodeInfo := c.GenNodeInfo()
 		c.SendStatus(&nodeInfo)
-		//time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
