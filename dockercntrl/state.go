@@ -53,7 +53,7 @@ func (s *State) Pull(config *Config) (*string, error) {
 
 // Create builds a docker container
 func (s *State) Create(configuration *Config) (*Container, error) {
-  // if _, err := s.Pull(configuration); err != nil {return nil, err}
+  if _, err := s.Pull(configuration); err != nil {return nil, err}
   config, hostConfig, err := configuration.convert()
   if err != nil {return nil, err}
 
