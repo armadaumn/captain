@@ -55,7 +55,9 @@ func GetLocationInfo(ip string, synth bool) (float64, float64) {
 		currLineNum := 1
 		for {
 			record, err := r.Read()
-			log.Println(err)
+			if err != nil {
+				log.Println(err)
+			}
 			if err == io.EOF {
 				break
 			}
@@ -66,10 +68,14 @@ func GetLocationInfo(ip string, synth bool) (float64, float64) {
 			} else {
 				// fmt.Println(record)
 				lat, err = strconv.ParseFloat(record[0], 64)
-				log.Println(err)
+				if err != nil {
+					log.Println(err)
+				}
 
 				lon, err = strconv.ParseFloat(record[1], 64)
-				log.Println(err)
+				if err != nil {
+					log.Println(err)
+				}
 			}
 			break
 		}
@@ -77,15 +83,21 @@ func GetLocationInfo(ip string, synth bool) (float64, float64) {
 		return lat, lon
 	} else {
 		resp, err := http.Get("http://api.ipstack.com/" + ip + "?access_key=add_your_access_key")
-		log.Println(err)
+		if err != nil {
+			log.Println(err)
+		}
 		defer resp.Body.Close()
 
 		body, err := ioutil.ReadAll(resp.Body)
-		log.Println(err)
+		if err != nil {
+			log.Println(err)
+		}
 
 		var geoLocInfo GeoLocInfo
 		err = json.Unmarshal(body, &geoLocInfo)
-		log.Println(err)
+		if err != nil {
+			log.Println(err)
+		}
 
 		return geoLocInfo.Lat, geoLocInfo.Lon
 	}

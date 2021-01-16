@@ -69,8 +69,8 @@ func (c *Captain) Run(dialurl string) error {
 	lon := 0.0
 	if !synth {
 		ip = utils.GetPublicIP()
-		lat, lon = utils.GetLocationInfo(ip, synth)
 	}
+	lat, lon = utils.GetLocationInfo(ip, true)
 
 	request := &spincomm.JoinRequest{
 		CaptainId: &spincomm.UUID{
