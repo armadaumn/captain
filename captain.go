@@ -20,10 +20,11 @@ type Captain struct {
 	storage    bool
 	name       string
 	rm         *ResourceManager
+	serverType spincomm.Type
 }
 
 // Constructs a new captain.
-func New(name string) (*Captain, error) {
+func New(name string, serverType string) (*Captain, error) {
 	state, err := dockercntrl.New()
 	if err != nil {
 		return nil, err
@@ -32,24 +33,35 @@ func New(name string) (*Captain, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// random name
 	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	randomName := make([]rune, 10)
     rand.Seed(time.Now().UnixNano())
 	for i := range randomName {
 		randomName[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
+
+	var tp spincomm.Type
+	if serverType == "server" {
+		tp = spincomm.Type_LocalServer
+	} else {
+		tp = spincomm.Type_Volunteer
+	}
+
 	return &Captain{
-		state:   state,
-		storage: false,
-		name:    string(randomName),
-		rm:      res,
+		state:      state,
+		storage:    false,
+		name:       string(randomName),
+		rm:         res,
+		serverType: tp,
 	}, nil
 }
 
 // Connects to a given spinner and runs an infinite loop.
 // This loop is because the dial runs a goroutine, which
 // stops if the main thread closes.
-func (c *Captain) Run(dialurl string) error {
+func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
 	conn, err := grpc.Dial(dialurl, opts...)
@@ -70,7 +82,11 @@ func (c *Captain) Run(dialurl string) error {
 	if !synth {
 		ip = utils.GetPublicIP()
 	}
-	lat, lon = utils.GetLocationInfo(ip, true)
+	isClose := true
+	if loc == "far" {
+		isClose = false
+	}
+	lat, lon = utils.GetLocationInfo(ip, isClose)
 
 	request := &spincomm.JoinRequest{
 		CaptainId: &spincomm.UUID{
@@ -79,6 +95,8 @@ func (c *Captain) Run(dialurl string) error {
 		IP: ip,
 		Lat: lat,
 		Lon: lon,
+		Type: c.serverType,
+		Tags: tags,
 	}
 	log.Println(request)
 	ctx, cancel := context.WithCancel(context.Background())

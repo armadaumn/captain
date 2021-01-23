@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/csv"
-	"encoding/json"
 	"io"
 	"io/ioutil"
 	"log"
@@ -42,64 +41,52 @@ func GetLocationInfo(ip string, synth bool) (float64, float64) {
 
 	lat := float64(0)
 	lon := float64(0)
+	rand.Seed(time.Now().UnixNano())
+	var (
+		csvFile *os.File
+		err     error
+	)
+
 	if synth {
-		rand.Seed(time.Now().UnixNano())
-		csvfile, err := os.Open("internal/utils/latlon.csv")
+		csvFile, err = os.Open("internal/utils/latlon.csv")
+	} else {
+		csvFile, err = os.Open("internal/utils/farlocation.csv")
+	}
+
+	if err != nil {
+		log.Fatalln("Error: Can't open file", err)
+	}
+	defer csvFile.Close()
+
+	r := csv.NewReader(csvFile)
+	randLineNumber := rand.Intn(11) + 1
+	currLineNum := 1
+	for {
+		record, err := r.Read()
 		if err != nil {
-			log.Fatalln("Error: Can't open file", err)
+			log.Println(err)
 		}
-		defer csvfile.Close()
-
-		r := csv.NewReader(csvfile)
-		randLineNumber := rand.Intn(11) + 1
-		currLineNum := 1
-		for {
-			record, err := r.Read()
-			if err != nil {
-				log.Println(err)
-			}
-			if err == io.EOF {
-				break
-			}
-
-			if currLineNum != randLineNumber {
-				currLineNum++
-				continue
-			} else {
-				// fmt.Println(record)
-				lat, err = strconv.ParseFloat(record[0], 64)
-				if err != nil {
-					log.Println(err)
-				}
-
-				lon, err = strconv.ParseFloat(record[1], 64)
-				if err != nil {
-					log.Println(err)
-				}
-			}
+		if err == io.EOF {
 			break
 		}
 
-		return lat, lon
-	} else {
-		resp, err := http.Get("http://api.ipstack.com/" + ip + "?access_key=add_your_access_key")
-		if err != nil {
-			log.Println(err)
-		}
-		defer resp.Body.Close()
+		if currLineNum != randLineNumber {
+			currLineNum++
+			continue
+		} else {
+			// fmt.Println(record)
+			lat, err = strconv.ParseFloat(record[0], 64)
+			if err != nil {
+				log.Println(err)
+			}
 
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Println(err)
+			lon, err = strconv.ParseFloat(record[1], 64)
+			if err != nil {
+				log.Println(err)
+			}
 		}
-
-		var geoLocInfo GeoLocInfo
-		err = json.Unmarshal(body, &geoLocInfo)
-		if err != nil {
-			log.Println(err)
-		}
-
-		return geoLocInfo.Lat, geoLocInfo.Lon
+		break
 	}
 
+	return lat, lon
 }

@@ -2,6 +2,8 @@ package main
 
 import (
   "github.com/armadanet/captain"
+  "os"
+
   // "net/url"
   "log"
   // "os"
@@ -10,9 +12,13 @@ import (
 
 func main() {
 
-  cap, err := captain.New("captain")
+  serverType := os.Args[1]
+  location := os.Args[2]
+  tags := []string{os.Args[3]}
+
+  cap, err := captain.New("captain", serverType)
   if err != nil {log.Fatalln(err)}
-  err = cap.Run("ec2-34-238-242-228.compute-1.amazonaws.com:5912")
+  err = cap.Run("spinner:5912", location, tags)
   if err != nil {
     log.Fatalln(err)
   }

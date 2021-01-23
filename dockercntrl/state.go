@@ -208,8 +208,11 @@ func (s *State) RealtimeRC(cID string) (float64, float64, error) {
   containerDelta := float64(stats.CPUStats.CPUUsage.TotalUsage - stats.PreCPUStats.CPUUsage.TotalUsage)
   systemDelta := float64(stats.CPUStats.SystemUsage - stats.PreCPUStats.SystemUsage)
   if containerDelta > 0.0 && systemDelta > 0.0 {
-    numCPUs := float64(len(stats.CPUStats.CPUUsage.PercpuUsage))
-    cpuPercent = (containerDelta/systemDelta) * numCPUs * 100.0
+    //numCPUs := float64(len(stats.CPUStats.CPUUsage.PercpuUsage))
+    cpuPercent = (containerDelta/systemDelta) * 100.0
+    if cpuPercent > 100.0 {
+      cpuPercent = 100.0
+    }
   } else {
     cpuPercent = 0
   }
@@ -217,6 +220,9 @@ func (s *State) RealtimeRC(cID string) (float64, float64, error) {
   memLimit := float64(stats.MemoryStats.Limit)
   if memLimit != 0 {
     memPercent = float64(stats.MemoryStats.Usage) / memLimit * 100.0
+    if memPercent > 100.0 {
+      memPercent = 100.0
+    }
   } else {
     memPercent = 0
   }
