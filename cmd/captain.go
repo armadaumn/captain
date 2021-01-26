@@ -18,7 +18,7 @@ func main() {
 
   cap, err := captain.New("captain", serverType)
   if err != nil {log.Fatalln(err)}
-  err = cap.Run("spinner:5912", location, tags)
+  err = cap.Run("ec2-34-238-242-228.compute-1.amazonaws.com:5912", location, tags)
   if err != nil {
     log.Fatalln(err)
   }
