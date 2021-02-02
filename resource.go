@@ -5,6 +5,7 @@ import (
 	"github.com/armadanet/captain/dockercntrl"
 	"github.com/armadanet/spinner/spincomm"
 	"log"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -21,8 +22,8 @@ type ResourceManager struct {
 type Resource struct {
 	totalResource      dockercntrl.Limits
 	unassignedResource dockercntrl.Limits
-	cpuUsage           float64
-	memUsage           float64
+	cpuUsage           ResQueue
+	memUsage           ResQueue
 	activeContainers   []string
 	//images           []string
 	usedPorts          map[string]string
@@ -58,6 +59,8 @@ func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
 		resource: &Resource{
 			totalResource:      total,
 			unassignedResource: avail,
+			cpuUsage:           initQueue(),
+			memUsage:           initQueue(),
 			activeContainers:   make([]string, 0),
 			usedPorts:          make(map[string]string),
 		},
@@ -68,9 +71,13 @@ func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
 
 func (c *Captain) RequestResource(config *dockercntrl.Config) {
 	c.rm.mutex.Lock()
+	defer c.rm.mutex.Unlock()
+
 	c.rm.resource.unassignedResource.CPUShares -= config.Limits.CPUShares
 	c.rm.resource.unassignedResource.Memory -= config.Limits.Memory
-	c.rm.mutex.Unlock()
+
+	//Update used ports
+	c.rm.resource.usedPorts[config.Name] = strconv.FormatInt(config.Port, 10)
 
 	nodeInfo := c.GenNodeInfo()
 	c.SendStatus(&nodeInfo)
@@ -96,33 +103,37 @@ func (c *Captain) UpdateRealTimeResource() error {
 	}
 
 	activeContainers := make([]string, 0)
-	usedPorts := make(map[string]string)
-	cpuUsage := 0.0
-	memUsage := 0.0
+	cpuUsage := HistoryLog{
+		containers: make(map[string]float64),
+		sum:        0.0,
+	}
+	memUsage := HistoryLog{
+		containers: make(map[string]float64),
+		sum:        0.0,
+	}
+
 	for _, container := range containers {
 		cpuPercent, memPercent, err := c.state.RealtimeRC(container.ID)
 		if err != nil {
 			return err
 		}
-		cpuUsage += cpuPercent
-		memUsage += memPercent
+
+		// Update usage
+		cpuUsage.containers[container.ID] = cpuPercent
+		memUsage.containers[container.ID] = memPercent
+		cpuUsage.sum += cpuPercent
+		memUsage.sum += memPercent
+
+		// Update container list
 		activeContainers = append(activeContainers, container.Image)
 		c.rm.resource.activeContainers = activeContainers
-
-		ports, err := c.state.UsedPorts(container)
-
-		if err != nil {
-			return err
-		}
-		if len(ports) == 0{
-			usedPorts[container.Names[0][1:]] = ""
-		} else {
-			usedPorts[container.Names[0][1:]] = ports[0]
-		}
-		c.rm.resource.usedPorts = usedPorts
 	}
-	c.rm.resource.cpuUsage = cpuUsage
-	c.rm.resource.memUsage = memUsage
+	c.rm.resource.cpuUsage.Push(cpuUsage)
+	c.rm.resource.memUsage.Push(memUsage)
+	log.Println("CPU usage")
+	log.Println(c.rm.resource.cpuUsage)
+	log.Println("Mem usage")
+	log.Println(c.rm.resource.memUsage)
 	return nil
 }
 
@@ -153,14 +164,14 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 		Total:      c.rm.resource.totalResource.CPUShares,
 		Unassigned: c.rm.resource.unassignedResource.CPUShares,
 		Assigned:   c.rm.resource.totalResource.CPUShares - c.rm.resource.unassignedResource.CPUShares,
-		Available:  100.0 - c.rm.resource.cpuUsage,
+		Available:  100.0 - c.rm.resource.cpuUsage.Average(),
 	}
 
 	mem := spincomm.ResourceStatus{
 		Total:      c.rm.resource.totalResource.Memory,
 		Unassigned: c.rm.resource.unassignedResource.Memory,
 		Assigned:   c.rm.resource.totalResource.Memory - c.rm.resource.unassignedResource.Memory,
-		Available:  100.0 - c.rm.resource.memUsage,
+		Available:  100.0 - c.rm.resource.memUsage.Average(),
 	}
 	hostResource := make(map[string]*spincomm.ResourceStatus)
 	hostResource["CPU"] = &cpu

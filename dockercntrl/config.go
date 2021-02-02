@@ -37,11 +37,16 @@ const (
   LABEL = "nebula-id"
 )
 
-func TaskRequestLimits(limits *spincomm.TaskLimits) *Limits {
-  return &Limits{
-    CPUShares: limits.GetCpuShares(),
-    Memory: limits.GetMemory(),
+func TaskRequestLimits(req map[string]*spincomm.ResourceRequirement) *Limits {
+  limits := Limits{}
+  if val, ok := req["CPU"]; ok {
+    limits.CPUShares = val.Requested
   }
+  if val, ok := req["Memory"]; ok {
+    limits.Memory = val.Requested
+  }
+
+  return &limits
 }
 
 func TaskRequestConfig(task *spincomm.TaskRequest) (*Config, error) {
@@ -51,7 +56,7 @@ func TaskRequestConfig(task *spincomm.TaskRequest) (*Config, error) {
     Cmd: task.GetCommand(),
     Tty: task.GetTty(),
     Name: task.GetTaskId().GetValue(),
-    Limits: TaskRequestLimits(task.GetLimits()),
+    Limits: TaskRequestLimits(task.GetTaskspec().GetResourceMap()),
     Env: task.GetEnv(),
     Port: task.GetPort(),
     Storage: false,

@@ -15,10 +15,11 @@ func main() {
   serverType := os.Args[1]
   location := os.Args[2]
   tags := []string{os.Args[3]}
+  url := os.Args[4]
 
   cap, err := captain.New("captain", serverType)
   if err != nil {log.Fatalln(err)}
-  err = cap.Run("ec2-34-238-242-228.compute-1.amazonaws.com:5912", location, tags)
+  err = cap.Run(url, location, tags)
   if err != nil {
     log.Fatalln(err)
   }
