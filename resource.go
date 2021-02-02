@@ -94,43 +94,43 @@ func (c *Captain) ReleaseResource(config *dockercntrl.Config) {
 }
 
 func (c *Captain) UpdateRealTimeResource() error {
-	c.rm.mutex.Lock()
-	defer c.rm.mutex.Unlock()
-
-	containers, err := c.state.List(false, false)
-	if err != nil {
-		return err
-	}
-
-	activeContainers := make([]string, 0)
-	cpuUsage := HistoryLog{
-		containers: make(map[string]float64),
-		sum:        0.0,
-	}
-	memUsage := HistoryLog{
-		containers: make(map[string]float64),
-		sum:        0.0,
-	}
-
-	for _, container := range containers {
-		cpuPercent, memPercent, err := c.state.RealtimeRC(container.ID)
+	for {
+		containers, err := c.state.List(false, false)
 		if err != nil {
 			return err
 		}
 
-		// Update usage
-		cpuUsage.containers[container.ID] = cpuPercent
-		memUsage.containers[container.ID] = memPercent
-		cpuUsage.sum += cpuPercent
-		memUsage.sum += memPercent
+		activeContainers := make([]string, 0)
+		cpuUsage := HistoryLog{
+			containers: make(map[string]float64),
+			sum:        0.0,
+		}
+		memUsage := HistoryLog{
+			containers: make(map[string]float64),
+			sum:        0.0,
+		}
 
-		// Update container list
-		activeContainers = append(activeContainers, container.Image)
+		for _, container := range containers {
+			cpuPercent, memPercent, err := c.state.RealtimeRC(container.ID)
+			if err != nil {
+				return err
+			}
+
+			// Update usage
+			cpuUsage.containers[container.ID] = cpuPercent
+			memUsage.containers[container.ID] = memPercent
+			cpuUsage.sum += cpuPercent
+			memUsage.sum += memPercent
+
+			// Update container list
+			activeContainers = append(activeContainers, container.Image)
+		}
+		c.rm.mutex.Lock()
+		c.rm.resource.cpuUsage.Push(cpuUsage)
+		c.rm.resource.memUsage.Push(memUsage)
 		c.rm.resource.activeContainers = activeContainers
+		c.rm.mutex.Unlock()
 	}
-	c.rm.resource.cpuUsage.Push(cpuUsage)
-	c.rm.resource.memUsage.Push(memUsage)
-	return nil
 }
 
 func (c *Captain) PeriodicalUpdate(ctx context.Context, client spincomm.SpinnerClient) {
@@ -139,12 +139,9 @@ func (c *Captain) PeriodicalUpdate(ctx context.Context, client spincomm.SpinnerC
 
 	c.rm.context = ctx
 	c.rm.client = client
+	time.Sleep(1 * time.Second)
 
 	for {
-		err := c.UpdateRealTimeResource()
-		if err != nil {
-			log.Fatalln(err)
-		}
 		nodeInfo := c.GenNodeInfo()
 		c.SendStatus(&nodeInfo)
 		time.Sleep(5 * time.Second)

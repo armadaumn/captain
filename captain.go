@@ -107,6 +107,7 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 	}
 	log.Println("Attached")
 	// Send running status
+	go c.UpdateRealTimeResource()
 	go c.PeriodicalUpdate(ctx, client)
 
 	var wg sync.WaitGroup

@@ -2,7 +2,7 @@ package captain
 
 import "sync"
 
-const LIMIT = 10
+const LIMIT = 100
 
 type resQueue struct {
 	lock    sync.Mutex
