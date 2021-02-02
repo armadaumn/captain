@@ -130,10 +130,6 @@ func (c *Captain) UpdateRealTimeResource() error {
 	}
 	c.rm.resource.cpuUsage.Push(cpuUsage)
 	c.rm.resource.memUsage.Push(memUsage)
-	log.Println("CPU usage")
-	log.Println(c.rm.resource.cpuUsage)
-	log.Println("Mem usage")
-	log.Println(c.rm.resource.memUsage)
 	return nil
 }
 

@@ -6,8 +6,8 @@ NETWORK := spinner-local-network
 TYPE := server
 LOC  := close
 TAG  := keller
-# URL  := ec2-34-238-242-228.compute-1.amazonaws.com:5912
-URL  := spinner:5912
+URL  := ec2-34-238-242-228.compute-1.amazonaws.com:5912
+# URL  := spinner:5912
 
 # Dynamic Port Exposure
 # https://stackoverflow.com/questions/19897743/exposing-a-port-on-a-live-docker-container
