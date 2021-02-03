@@ -71,13 +71,13 @@ func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
 
 func (c *Captain) RequestResource(config *dockercntrl.Config) {
 	c.rm.mutex.Lock()
-	defer c.rm.mutex.Unlock()
 
 	c.rm.resource.unassignedResource.CPUShares -= config.Limits.CPUShares
 	c.rm.resource.unassignedResource.Memory -= config.Limits.Memory
 
 	//Update used ports
 	c.rm.resource.usedPorts[config.Name] = strconv.FormatInt(config.Port, 10)
+	c.rm.mutex.Unlock()
 
 	nodeInfo := c.GenNodeInfo()
 	c.SendStatus(&nodeInfo)
