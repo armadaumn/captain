@@ -164,7 +164,8 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 		log.Println(err)
 		return
 	}
-	c.appendTask(task.GetAppId().GetValue(), config.Id, config.Port, container)
+
+	c.appendTask(task.GetAppId().GetValue(), config.Id, container)
 
 	logReader, err := c.state.Run(container)
 	if err != nil {

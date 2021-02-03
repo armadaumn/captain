@@ -5,7 +5,6 @@ import (
 	"github.com/armadanet/captain/dockercntrl"
 	"github.com/armadanet/spinner/spincomm"
 	"log"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -138,6 +137,21 @@ func (c *Captain) PeriodicalUpdate(ctx context.Context, client spincomm.SpinnerC
 	time.Sleep(1 * time.Second)
 
 	for {
+		for taskID, container := range c.rm.tasksTable {
+			if _, ok := c.rm.resource.usedPorts[taskID]; !ok {
+				//Update used ports
+				ports, err := c.state.UsedPorts(container)
+				if err != nil {
+					log.Println(err)
+					ports = []string{}
+				}
+				if len(ports) == 0 {
+					c.rm.resource.usedPorts[taskID] = ""
+				} else {
+					c.rm.resource.usedPorts[taskID] = ports[0]
+				}
+			}
+		}
 		nodeInfo := c.GenNodeInfo()
 		c.SendStatus(&nodeInfo)
 		time.Sleep(5 * time.Second)
@@ -172,7 +186,7 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 		appList = append(appList, id)
 	}
 	taskList := make([]string, len(c.rm.tasksTable))
-	for id, _ := range c.rm.appIDs {
+	for id, _ := range c.rm.tasksTable {
 		taskList = append(taskList, id)
 	}
 
@@ -196,6 +210,7 @@ func (c *Captain) SendStatus(nodeInfo *spincomm.NodeInfo) {
 	//c.rm.mutex.Lock()
 	//defer c.rm.mutex.Unlock()
 
+	log.Println(nodeInfo)
 	r, err := c.rm.client.Update(c.rm.context, nodeInfo)
 	if err != nil {
 		log.Fatalln(err)
@@ -203,15 +218,13 @@ func (c *Captain) SendStatus(nodeInfo *spincomm.NodeInfo) {
 	log.Println(r)
 }
 
-func (c *Captain) appendTask(appID string, taskID string, port int64, container *dockercntrl.Container) {
+func (c *Captain) appendTask(appID string, taskID string, container *dockercntrl.Container) {
 	c.rm.mutex.Lock()
 	defer c.rm.mutex.Unlock()
 
 	log.Println("append task")
 	c.rm.appIDs[appID] = struct{}{}
 	c.rm.tasksTable[taskID] = container
-	//Update used ports
-	c.rm.resource.usedPorts[taskID] = strconv.FormatInt(port, 10)
 }
 
 func (c *Captain) removeTask(appID string, taskID string) {
