@@ -164,11 +164,13 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 		log.Println(err)
 		return
 	}
-	c.appendTask(task.GetAppId().GetValue(), config.Id, container)
+	c.appendTask(task.GetAppId().GetValue(), config.Id, config.Port, container)
 
 	logReader, err := c.state.Run(container)
 	if err != nil {
 		log.Println(err)
+		c.removeTask(task.GetAppId().GetValue(), config.Id)
+		c.ReleaseResource(config)
 		return
 	}
 
@@ -178,6 +180,7 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 		if err != nil {
 			log.Println(err)
 			c.removeTask(task.GetAppId().GetValue(), config.Id)
+			c.ReleaseResource(config)
 			//c.state.Kill(container)
 			//c.state.Remove(container)
 			//stream.CloseAndRecv()

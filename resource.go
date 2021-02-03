@@ -71,12 +71,8 @@ func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
 
 func (c *Captain) RequestResource(config *dockercntrl.Config) {
 	c.rm.mutex.Lock()
-
 	c.rm.resource.unassignedResource.CPUShares -= config.Limits.CPUShares
 	c.rm.resource.unassignedResource.Memory -= config.Limits.Memory
-
-	//Update used ports
-	c.rm.resource.usedPorts[config.Name] = strconv.FormatInt(config.Port, 10)
 	c.rm.mutex.Unlock()
 
 	nodeInfo := c.GenNodeInfo()
@@ -207,13 +203,15 @@ func (c *Captain) SendStatus(nodeInfo *spincomm.NodeInfo) {
 	log.Println(r)
 }
 
-func (c *Captain) appendTask(appID string, taskID string, container *dockercntrl.Container) {
+func (c *Captain) appendTask(appID string, taskID string, port int64, container *dockercntrl.Container) {
 	c.rm.mutex.Lock()
 	defer c.rm.mutex.Unlock()
 
 	log.Println("append task")
 	c.rm.appIDs[appID] = struct{}{}
 	c.rm.tasksTable[taskID] = container
+	//Update used ports
+	c.rm.resource.usedPorts[taskID] = strconv.FormatInt(port, 10)
 }
 
 func (c *Captain) removeTask(appID string, taskID string) {
@@ -222,6 +220,7 @@ func (c *Captain) removeTask(appID string, taskID string) {
 
 	delete(c.rm.appIDs, appID)
 	delete(c.rm.tasksTable, taskID)
+	delete(c.rm.resource.usedPorts, taskID)
 }
 
 func (c *Captain) getTaskTable() map[string]*dockercntrl.Container {
