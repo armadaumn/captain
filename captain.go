@@ -82,9 +82,11 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 	if !synth {
 		ip = utils.GetPublicIP()
 	}
-	isClose := true
-	if loc == "far" {
-		isClose = false
+	isClose := 1
+	if loc == "close" {
+		isClose = 0
+	} else if loc == "far" {
+		isClose = 2
 	}
 	lat, lon = utils.GetLocationInfo(ip, isClose)
 

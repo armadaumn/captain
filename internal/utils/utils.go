@@ -37,7 +37,7 @@ func GetPublicIP() string {
 }
 
 // return the lat, lon of the calling node
-func GetLocationInfo(ip string, synth bool) (float64, float64) {
+func GetLocationInfo(ip string, loc int) (float64, float64) {
 
 	lat := float64(0)
 	lon := float64(0)
@@ -47,9 +47,11 @@ func GetLocationInfo(ip string, synth bool) (float64, float64) {
 		err     error
 	)
 
-	if synth {
+	if loc == 0{
 		csvFile, err = os.Open("internal/utils/latlon.csv")
-	} else {
+	} else if loc == 1 {
+		csvFile, err = os.Open("internal/utils/rochester.csv")
+	}else {
 		csvFile, err = os.Open("internal/utils/farlocation.csv")
 	}
 
