@@ -97,6 +97,7 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
   // if err != nil {return config, hostConfig, err}
   hostPort, _ := freeport.GetFreePort()
   hostPortS := strconv.Itoa(hostPort)
+  hostPortS = strconv.Itoa(8081)
 
   hostConfig := &container.HostConfig{
     Resources: container.Resources{
