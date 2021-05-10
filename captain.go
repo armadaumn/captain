@@ -161,6 +161,12 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 	c.RequestResource(config)
 
 	// Start the task
+	logs, err := c.state.Pull(config)
+	if len(logs) < 4 {
+		//TODO
+	} else {
+		go c.updateLayers(logs)
+	}
 	container, err := c.state.Create(config)
 	if err != nil {
 		log.Println(err)

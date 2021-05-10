@@ -2,6 +2,7 @@ package captain
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/armadanet/captain/dockercntrl"
 	"github.com/armadanet/spinner/spincomm"
 	"log"
@@ -25,6 +26,7 @@ type Resource struct {
 	memUsage           ResQueue
 	activeContainers   []string
 	//images           []string
+	layers			   map[string]string
 	usedPorts          map[string]string
 }
 
@@ -61,6 +63,7 @@ func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
 			cpuUsage:           initQueue(),
 			memUsage:           initQueue(),
 			activeContainers:   make([]string, 0),
+			layers:             make(map[string]string),
 			usedPorts:          make(map[string]string),
 		},
 		tasksTable: make(map[string]*dockercntrl.Container),
@@ -202,6 +205,7 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 		},
 		AppIDs: appList,
 		TaskIDs: taskList,
+		Layers: c.rm.resource.layers,
 	}
 	return nodeInfo
 }
@@ -241,4 +245,29 @@ func (c *Captain) getTaskTable() map[string]*dockercntrl.Container {
 	defer c.rm.mutex.Unlock()
 
 	return c.rm.tasksTable
+}
+
+func (c *Captain) updateLayers(logs []string) {
+	for _, l := range logs {
+		if l == "" {
+			continue
+		}
+		var f interface{}
+		log.Println(l)
+		json.Unmarshal([]byte(l), &f)
+		m := f.(map[string]interface{})
+		if m["id"] != nil {
+			layerID := m["id"].(string)
+			status := m["status"].(string)
+			if layerID == "latest" || (status != "Already exists" && status != "Pulling fs layer") {
+				continue
+			}
+			log.Println("after continue")
+			c.rm.resource.layers[layerID] = ""
+			log.Println(len(c.rm.resource.layers))
+		}
+	}
+
+	//TODO: for testing
+	log.Println(len(c.rm.resource.layers))
 }

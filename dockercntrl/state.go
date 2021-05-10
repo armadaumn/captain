@@ -9,6 +9,8 @@ import (
   "github.com/docker/docker/api/types/volume"
   "bytes"
   "io/ioutil"
+  "strings"
+
   // "strings"
   "log"
   "net/http"
@@ -40,7 +42,7 @@ func New() (*State, error) {
 }
 
 // Pull pulls the associated image into cache
-func (s *State) Pull(config *Config) (*string, error) {
+func (s *State) Pull(config *Config) ([]string, error) {
   reader, err := s.Client.ImagePull(s.Context, config.Image, types.ImagePullOptions{})
   if err != nil {
     return nil, err
@@ -48,12 +50,13 @@ func (s *State) Pull(config *Config) (*string, error) {
   buf := new(bytes.Buffer)
   buf.ReadFrom(reader)
   logs := buf.String()
-  return &logs, err
+  l := strings.Split(logs, "\n")
+  return l, err
 }
 
 // Create builds a docker container
 func (s *State) Create(configuration *Config) (*Container, error) {
-  if _, err := s.Pull(configuration); err != nil {return nil, err}
+  //if _, err := s.Pull(configuration); err != nil {return nil, err}
   config, hostConfig, err := configuration.convert()
   if err != nil {return nil, err}
 
