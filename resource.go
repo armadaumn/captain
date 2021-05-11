@@ -253,7 +253,6 @@ func (c *Captain) updateLayers(logs []string) {
 			continue
 		}
 		var f interface{}
-		log.Println(l)
 		json.Unmarshal([]byte(l), &f)
 		m := f.(map[string]interface{})
 		if m["id"] != nil {
@@ -262,12 +261,7 @@ func (c *Captain) updateLayers(logs []string) {
 			if layerID == "latest" || (status != "Already exists" && status != "Pulling fs layer") {
 				continue
 			}
-			log.Println("after continue")
 			c.rm.resource.layers[layerID] = ""
-			log.Println(len(c.rm.resource.layers))
 		}
 	}
-
-	//TODO: for testing
-	log.Println(len(c.rm.resource.layers))
 }
