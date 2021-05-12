@@ -109,7 +109,8 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
     PortBindings: nat.PortMap{
       port: []nat.PortBinding{{HostIP: "", HostPort: hostPortS}},
     },
-    NetworkMode: "spinner-local-network",
+    //NetworkMode: "spinner-local-network",
+    AutoRemove: true,
   }
 
   // If port is supplied, open that port on the container thru

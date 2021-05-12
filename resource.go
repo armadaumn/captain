@@ -156,7 +156,11 @@ func (c *Captain) PeriodicalUpdate(ctx context.Context, client spincomm.SpinnerC
 			}
 		}
 		nodeInfo := c.GenNodeInfo()
-		c.SendStatus(&nodeInfo)
+		err := c.SendStatus(&nodeInfo)
+		if err != nil {
+			c.RemoveTask()
+			log.Fatal(err)
+		}
 		time.Sleep(5 * time.Second)
 	}
 }
@@ -210,23 +214,25 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 	return nodeInfo
 }
 
-func (c *Captain) SendStatus(nodeInfo *spincomm.NodeInfo) {
+func (c *Captain) SendStatus(nodeInfo *spincomm.NodeInfo) error {
 	//c.rm.mutex.Lock()
 	//defer c.rm.mutex.Unlock()
 
-	log.Println(nodeInfo)
-	r, err := c.rm.client.Update(c.rm.context, nodeInfo)
+	log.Printf("Total CPU: %d, Assignged CPU: %d, Available: %f", nodeInfo.HostResource["CPU"].Total, nodeInfo.HostResource["CPU"].Assigned, nodeInfo.HostResource["CPU"].Available)
+	_, err := c.rm.client.Update(c.rm.context, nodeInfo)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		return err
 	}
-	log.Println(r)
+	return nil
+	//log.Println(r)
 }
 
 func (c *Captain) appendTask(appID string, taskID string, container *dockercntrl.Container) {
 	c.rm.mutex.Lock()
 	defer c.rm.mutex.Unlock()
 
-	log.Println("append task")
+	//log.Println("append task")
 	c.rm.appIDs[appID] = struct{}{}
 	c.rm.tasksTable[taskID] = container
 }

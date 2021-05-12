@@ -10,7 +10,10 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -73,7 +76,7 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 	client := spincomm.NewSpinnerClient(conn)
 	// c.state.GetNetwork()
 	// c.ConnectStorage()
-	log.Println(c.name)
+	//log.Println(c.name)
 
 	synth := false
 	ip := "0.0.0.0"
@@ -112,6 +115,17 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 	go c.UpdateRealTimeResource()
 	go c.PeriodicalUpdate(ctx, client)
 
+	go func() {
+		interrupt := make(chan os.Signal, 1)
+		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
+		select {
+		case <-interrupt:
+			c.RemoveTask()
+			break
+		}
+		os.Exit(2)
+	}()
+
 	var wg sync.WaitGroup
 	for {
 		task, err := stream.Recv()
@@ -123,6 +137,7 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 		}
 		if err != nil {
 			wg.Wait()
+			c.RemoveTask()
 			return err
 		}
 		log.Println("Task:", task)
@@ -152,7 +167,6 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 		task.Command = append(task.Command, appID)
 		task.Command = append(task.Command, "1")
 	}
-	log.Println("Task:", task)
 	config, err := dockercntrl.TaskRequestConfig(task)
 	if err != nil {
 		log.Fatal(err)
@@ -207,10 +221,11 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 }
 
 func (c *Captain) RemoveTask() {
+	log.Println("removing tasks")
 	taskTable := c.getTaskTable()
 	for _, container := range taskTable {
 		c.state.Kill(container)
-		c.state.Remove(container)
+		//c.state.Remove(container)
 	}
 }
 
