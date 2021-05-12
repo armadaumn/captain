@@ -4,7 +4,6 @@ import (
   "github.com/docker/docker/api/types/container"
   "github.com/docker/docker/api/types/mount"
   "github.com/docker/go-connections/nat"
-  "github.com/phayes/freeport"
   "strconv"
 
   // "github.com/phayes/freeport"
@@ -35,6 +34,10 @@ type Config struct {
 
 const (
   LABEL = "nebula-id"
+)
+
+var (
+  HostPort = 8080
 )
 
 func TaskRequestLimits(req map[string]*spincomm.ResourceRequirement) *Limits {
@@ -93,11 +96,10 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
     },
   }
 
-  //port, _ := nat.NewPort("tcp", "8080")
-  // if err != nil {return config, hostConfig, err}
-  hostPort, _ := freeport.GetFreePort()
-  hostPortS := strconv.Itoa(hostPort)
-  hostPortS = strconv.Itoa(8081)
+  //hostPort, _ := freeport.GetFreePort()
+  //hostPortS := strconv.Itoa(hostPort)
+  hostPortS := strconv.Itoa(HostPort)
+  HostPort = HostPort + 1
 
   hostConfig := &container.HostConfig{
     Resources: container.Resources{
