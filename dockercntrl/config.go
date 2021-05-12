@@ -103,7 +103,7 @@ func (c *Config) convert() (*container.Config, *container.HostConfig, error) {
 
   hostConfig := &container.HostConfig{
     Resources: container.Resources{
-      CPUShares: c.Limits.CPUShares,
+      NanoCPUs: c.Limits.CPUShares * 1000000000,
     },
     Mounts: c.mounts,
     PortBindings: nat.PortMap{
