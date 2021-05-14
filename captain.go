@@ -169,7 +169,6 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 		task.Command = append(task.Command, "1")
 	}
 	task = c.RequestResource(task)
-	log.Println(task.Taskspec.ResourceMap["CPU"].Requested)
 
 	config, err := dockercntrl.TaskRequestConfig(task)
 	if err != nil {

@@ -20,14 +20,15 @@ type ResourceManager struct {
 }
 
 type Resource struct {
-	totalResource      dockercntrl.Limits
-	unassignedResource dockercntrl.Limits
-	cpuUsage           ResQueue
-	memUsage           ResQueue
-	activeContainers   []string
-	//images           []string
-	layers			   map[string]string
-	usedPorts          map[string]string
+	totalResource        dockercntrl.Limits
+	unassignedResource   dockercntrl.Limits
+	cpuUsage             ResQueue
+	memUsage             ResQueue
+	activeContainers     []string
+	//images               []string
+	layers               map[string]string
+	usedPorts            map[string]string
+	containerAssignedCpu map[string]int64
 }
 
 func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
@@ -58,13 +59,14 @@ func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
 	return &ResourceManager{
 		mutex: &sync.Mutex{},
 		resource: &Resource{
-			totalResource:      total,
-			unassignedResource: avail,
-			cpuUsage:           initQueue(),
-			memUsage:           initQueue(),
-			activeContainers:   make([]string, 0),
-			layers:             make(map[string]string),
-			usedPorts:          make(map[string]string),
+			totalResource:        total,
+			unassignedResource:   avail,
+			cpuUsage:             initQueue(),
+			memUsage:             initQueue(),
+			activeContainers:     make([]string, 0),
+			layers:               make(map[string]string),
+			usedPorts:            make(map[string]string),
+			containerAssignedCpu: make(map[string]int64),
 		},
 		tasksTable: make(map[string]*dockercntrl.Container),
 		appIDs: make(map[string]struct{}),
@@ -86,9 +88,9 @@ func (c *Captain) RequestResource(config *spincomm.TaskRequest) *spincomm.TaskRe
 		}
 		c.rm.resource.unassignedResource.Memory -= val.Requested
 	}
+	c.rm.resource.containerAssignedCpu[config.TaskId.Value] = config.Taskspec.ResourceMap["CPU"].Requested
 	c.rm.mutex.Unlock()
 
-	log.Println(config.Taskspec.ResourceMap["CPU"].Requested)
 	nodeInfo := c.GenNodeInfo()
 	c.SendStatus(&nodeInfo)
 	return config
@@ -226,6 +228,7 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 		TaskIDs: taskList,
 		Layers: c.rm.resource.layers,
 		ContainerUtilization: c.rm.resource.cpuUsage.GetRecentUpdate(),
+		AssignedCpu: c.rm.resource.containerAssignedCpu,
 	}
 	return nodeInfo
 }
