@@ -16,6 +16,7 @@ type ResQueue interface {
 	Peek() *HistoryLog
 	Average() float64
 	Len() int
+	GetRecentUpdate() map[string]float64
 }
 
 type HistoryLog struct {
@@ -80,6 +81,16 @@ func (q *resQueue) Len() int {
 	defer q.lock.Unlock()
 
 	return len(q.log)
+}
+
+func (q *resQueue) GetRecentUpdate() map[string]float64 {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	lastIndex := len(q.log) - 1
+	if lastIndex < 0 {
+		return nil
+	}
+	return q.log[lastIndex].containers
 }
 
 func (q *resQueue) popAveUpdate() {

@@ -106,10 +106,10 @@ func (c *Captain) ReleaseResource(config *dockercntrl.Config) {
 
 func (c *Captain) UpdateRealTimeResource() error {
 	for {
-		containers, err := c.state.List(false, false)
-		if err != nil {
-			return err
-		}
+		//containers, err := c.state.List(false, false)
+		//if err != nil {
+		//	return err
+		//}
 
 		activeContainers := make([]string, 0)
 		cpuUsage := HistoryLog{
@@ -121,15 +121,16 @@ func (c *Captain) UpdateRealTimeResource() error {
 			sum:        0.0,
 		}
 
-		for _, container := range containers {
+		//for _, container := range containers {
+		for taskID, container := range c.rm.tasksTable {
 			cpuPercent, memPercent, err := c.state.RealtimeRC(container.ID)
 			if err != nil {
 				return err
 			}
 
 			// Update usage
-			cpuUsage.containers[container.ID] = cpuPercent
-			memUsage.containers[container.ID] = memPercent
+			cpuUsage.containers[taskID] = cpuPercent
+			memUsage.containers[taskID] = memPercent
 			cpuUsage.sum += cpuPercent
 			memUsage.sum += memPercent
 
@@ -224,6 +225,7 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 		AppIDs: appList,
 		TaskIDs: taskList,
 		Layers: c.rm.resource.layers,
+		ContainerUtilization: c.rm.resource.cpuUsage.GetRecentUpdate(),
 	}
 	return nodeInfo
 }
