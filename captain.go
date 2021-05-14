@@ -83,7 +83,7 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 	lat := 0.0
 	lon := 0.0
 	if !synth {
-		ip = utils.GetPublicIP()
+		ip = utils.GetIP()
 	}
 	isClose := 1
 	if loc == "close" {
@@ -115,6 +115,7 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 	go c.UpdateRealTimeResource()
 	go c.PeriodicalUpdate(ctx, client)
 
+	// Key input interrupt, clean all containers before termination
 	go func() {
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -167,12 +168,14 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 		task.Command = append(task.Command, appID)
 		task.Command = append(task.Command, "1")
 	}
+	task = c.RequestResource(task)
+	log.Println(task.Taskspec.ResourceMap["CPU"].Requested)
+
 	config, err := dockercntrl.TaskRequestConfig(task)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	c.RequestResource(config)
 
 	// Start the task
 	logs, err := c.state.Pull(config)
@@ -184,6 +187,7 @@ func (c *Captain) ExecuteTask(task *spincomm.TaskRequest, stream spincomm.Spinne
 	container, err := c.state.Create(config)
 	if err != nil {
 		log.Println(err)
+		c.ReleaseResource(config)
 		return
 	}
 

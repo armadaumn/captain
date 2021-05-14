@@ -71,14 +71,27 @@ func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
 	}, nil
 }
 
-func (c *Captain) RequestResource(config *dockercntrl.Config) {
+func (c *Captain) RequestResource(config *spincomm.TaskRequest) *spincomm.TaskRequest{
+	resourceMap := config.GetTaskspec().GetResourceMap()
 	c.rm.mutex.Lock()
-	c.rm.resource.unassignedResource.CPUShares -= config.Limits.CPUShares
-	c.rm.resource.unassignedResource.Memory -= config.Limits.Memory
+	if val, ok := resourceMap["CPU"]; ok {
+		if val.Requested > c.rm.resource.unassignedResource.CPUShares {
+			config.Taskspec.ResourceMap["CPU"].Requested = c.rm.resource.unassignedResource.CPUShares
+		}
+		c.rm.resource.unassignedResource.CPUShares -= val.Requested
+	}
+	if val, ok := resourceMap["memory"]; ok {
+		if val.Requested > c.rm.resource.unassignedResource.Memory {
+			config.Taskspec.ResourceMap["Memory"].Requested = c.rm.resource.unassignedResource.Memory
+		}
+		c.rm.resource.unassignedResource.Memory -= val.Requested
+	}
 	c.rm.mutex.Unlock()
 
+	log.Println(config.Taskspec.ResourceMap["CPU"].Requested)
 	nodeInfo := c.GenNodeInfo()
 	c.SendStatus(&nodeInfo)
+	return config
 }
 
 func (c *Captain) ReleaseResource(config *dockercntrl.Config) {
@@ -143,6 +156,7 @@ func (c *Captain) PeriodicalUpdate(ctx context.Context, client spincomm.SpinnerC
 		for taskID, container := range c.rm.tasksTable {
 			if _, ok := c.rm.resource.usedPorts[taskID]; !ok {
 				//Update used ports
+				log.Printf("updating used port for taskID: %s\n", taskID)
 				ports, err := c.state.UsedPorts(container)
 				if err != nil {
 					log.Println(err)
@@ -230,11 +244,15 @@ func (c *Captain) SendStatus(nodeInfo *spincomm.NodeInfo) error {
 
 func (c *Captain) appendTask(appID string, taskID string, container *dockercntrl.Container) {
 	c.rm.mutex.Lock()
-	defer c.rm.mutex.Unlock()
 
 	//log.Println("append task")
 	c.rm.appIDs[appID] = struct{}{}
 	c.rm.tasksTable[taskID] = container
+	c.rm.mutex.Unlock()
+
+	nodeInfo := c.GenNodeInfo()
+
+	c.SendStatus(&nodeInfo)
 }
 
 func (c *Captain) removeTask(appID string, taskID string) {

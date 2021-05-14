@@ -2,11 +2,11 @@ package utils
 
 import (
 	"encoding/csv"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/http"
+	"net"
 	"os"
 	"strconv"
 	"time"
@@ -19,21 +19,41 @@ type GeoLocInfo struct {
 }
 
 // return the public of the calling node
-func GetPublicIP() string {
-	resp, err := http.Get("https://ipecho.net/plain")
-	if err != nil {
-		log.Println(err)
-		return "0.0.0.0"
-	}
-	defer resp.Body.Close()
-	ip, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "0.0.0.0"
-	}
+func GetIP() string {
+	//resp, err := http.Get("https://ipecho.net/plain")
+	//if err != nil {
+	//	log.Println(err)
+	//	return "0.0.0.0"
+	//}
+	//defer resp.Body.Close()
+	//ip, err := ioutil.ReadAll(resp.Body)
+	//if err != nil {
+	//	return "0.0.0.0"
+	//}
+	//
+	//publicIP := string(ip)
+	//
+	//return publicIP
 
-	publicIP := string(ip)
-
-	return publicIP
+	var ip string
+	interfaces, _ := net.Interfaces()
+	for _, interf := range interfaces {
+		if interf.Name == "eth0" {
+			addrs, err := interf.Addrs()
+			if err != nil {
+				log.Fatal(err)
+			}
+			for _, addr := range addrs {
+				if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+					if len(ipnet.IP.String()) < 16 {
+						ip = ipnet.IP.String()
+						fmt.Println("Current IP address : ", ip)
+					}
+				}
+			}
+		}
+	}
+	return ip
 }
 
 // return the lat, lon of the calling node
