@@ -12,5 +12,5 @@ FROM alpine:3.12
 RUN apk --no-cache add ca-certificates
 WORKDIR /home/dev/
 COPY --from=0 /home/dev/captain/main .
-COPY --from=0 /home/dev/captain/internal/utils/latlon.csv ./internal/utils/latlon.csv
+COPY --from=0 /home/dev/captain/internal/utils ./internal/utils
 ENTRYPOINT [ "./main" ]

@@ -3,11 +3,7 @@ package main
 import (
   "github.com/armadanet/captain"
   "os"
-
-  // "net/url"
   "log"
-  // "os"
-  // "flag"
 )
 
 func main() {
@@ -16,6 +12,11 @@ func main() {
   location := os.Args[2]
   tags := []string{os.Args[3]}
   url := os.Args[4]
+
+  log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+  //For evaluation, registryURL is used as BeaconURL
+  // Spinner will register itself to Beacon
+  //url := connectBeacon(spinnerUrl)
 
   cap, err := captain.New("captain", serverType)
   if err != nil {log.Fatalln(err)}
