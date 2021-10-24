@@ -3,11 +3,12 @@ package captain
 import (
 	"context"
 	"encoding/json"
-	"github.com/armadanet/captain/dockercntrl"
-	"github.com/armadanet/spinner/spincomm"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/armadanet/captain/dockercntrl"
+	"github.com/armadanet/spinner/spincomm"
 )
 
 type ResourceManager struct {
@@ -20,11 +21,11 @@ type ResourceManager struct {
 }
 
 type Resource struct {
-	totalResource        dockercntrl.Limits
-	unassignedResource   dockercntrl.Limits
-	cpuUsage             ResQueue
-	memUsage             ResQueue
-	activeContainers     []string
+	totalResource      dockercntrl.Limits
+	unassignedResource dockercntrl.Limits
+	cpuUsage           ResQueue
+	memUsage           ResQueue
+	activeContainers   []string
 	//images               []string
 	layers               map[string]string
 	usedPorts            map[string]string
@@ -69,11 +70,11 @@ func initResourceManager(state *dockercntrl.State) (*ResourceManager, error) {
 			containerAssignedCpu: make(map[string]int64),
 		},
 		tasksTable: make(map[string]*dockercntrl.Container),
-		appIDs: make(map[string]struct{}),
+		appIDs:     make(map[string]struct{}),
 	}, nil
 }
 
-func (c *Captain) RequestResource(config *spincomm.TaskRequest) *spincomm.TaskRequest{
+func (c *Captain) RequestResource(config *spincomm.TaskRequest) *spincomm.TaskRequest {
 	resourceMap := config.GetTaskspec().GetResourceMap()
 	c.rm.mutex.Lock()
 	if val, ok := resourceMap["CPU"]; ok {
@@ -182,7 +183,7 @@ func (c *Captain) PeriodicalUpdate(ctx context.Context, client spincomm.SpinnerC
 	}
 }
 
-func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
+func (c *Captain) GenNodeInfo() spincomm.NodeInfo {
 	c.rm.mutex.Lock()
 	defer c.rm.mutex.Unlock()
 
@@ -219,16 +220,16 @@ func (c *Captain) GenNodeInfo() spincomm.NodeInfo{
 			Value: c.name,
 		},
 		HostResource: hostResource,
-		UsedPorts: c.rm.resource.usedPorts,
+		UsedPorts:    c.rm.resource.usedPorts,
 		ContainerStatus: &spincomm.ContainerStatus{
 			ActiveContainer: c.rm.resource.activeContainers,
 			Images:          c.rm.resource.activeContainers,
 		},
-		AppIDs: appList,
-		TaskIDs: taskList,
-		Layers: c.rm.resource.layers,
+		AppIDs:               appList,
+		TaskIDs:              taskList,
+		Layers:               c.rm.resource.layers,
 		ContainerUtilization: c.rm.resource.cpuUsage.GetRecentUpdate(),
-		AssignedCpu: c.rm.resource.containerAssignedCpu,
+		AssignedCpu:          c.rm.resource.containerAssignedCpu,
 	}
 	return nodeInfo
 }

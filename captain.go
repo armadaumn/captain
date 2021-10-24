@@ -3,10 +3,6 @@ package captain
 
 import (
 	"context"
-	"github.com/armadanet/captain/dockercntrl"
-	"github.com/armadanet/captain/internal/utils"
-	"github.com/armadanet/spinner/spincomm"
-	"google.golang.org/grpc"
 	"io"
 	"log"
 	"math/rand"
@@ -15,6 +11,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/armadanet/captain/dockercntrl"
+	"github.com/armadanet/captain/internal/utils"
+	"github.com/armadanet/spinner/spincomm"
+	"google.golang.org/grpc"
 )
 
 // Captain holds state information and an exit mechanism.
@@ -40,7 +41,7 @@ func New(name string, serverType string) (*Captain, error) {
 	// random name
 	var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	randomName := make([]rune, 10)
-    rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 	for i := range randomName {
 		randomName[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
@@ -64,7 +65,7 @@ func New(name string, serverType string) (*Captain, error) {
 // Connects to a given spinner and runs an infinite loop.
 // This loop is because the dial runs a goroutine, which
 // stops if the main thread closes.
-func (c *Captain) Run(dialurl string, loc string, tags []string) error {
+func (c *Captain) Run(dialurl string, loc string, tags []string, localIP string) error {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
 	conn, err := grpc.Dial(dialurl, opts...)
@@ -83,7 +84,11 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 	lat := 0.0
 	lon := 0.0
 	if !synth {
-		ip = utils.GetIP()
+		ip = localIP
+		// Get internal ip (but will fail if this runs inside the container)
+		// ip = utils.GetPrivateIP()
+		// Get public ip
+		// ip = utils.GetIP()
 	}
 	isClose := 1
 	if loc == "close" {
@@ -97,9 +102,9 @@ func (c *Captain) Run(dialurl string, loc string, tags []string) error {
 		CaptainId: &spincomm.UUID{
 			Value: c.name,
 		},
-		IP: ip,
-		Lat: lat,
-		Lon: lon,
+		IP:   ip,
+		Lat:  lat,
+		Lon:  lon,
 		Type: c.serverType,
 		Tags: tags,
 	}

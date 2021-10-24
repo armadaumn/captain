@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,6 +17,19 @@ type GeoLocInfo struct {
 	IP  string  `json:"ip"`
 	Lat float64 `json:"latitude"`
 	Lon float64 `json:"longitude"`
+}
+
+// return the private ip of this node
+func GetPrivateIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP.String()
 }
 
 // return the public of the calling node
@@ -67,11 +81,11 @@ func GetLocationInfo(ip string, loc int) (float64, float64) {
 		err     error
 	)
 
-	if loc == 0{
+	if loc == 0 {
 		csvFile, err = os.Open("internal/utils/latlon.csv")
 	} else if loc == 1 {
 		csvFile, err = os.Open("internal/utils/rochester.csv")
-	}else {
+	} else {
 		csvFile, err = os.Open("internal/utils/farlocation.csv")
 	}
 
@@ -81,7 +95,8 @@ func GetLocationInfo(ip string, loc int) (float64, float64) {
 	defer csvFile.Close()
 
 	r := csv.NewReader(csvFile)
-	randLineNumber := rand.Intn(11) + 1
+	// randLineNumber := rand.Intn(11) + 1
+	randLineNumber := 1
 	currLineNum := 1
 	for {
 		record, err := r.Read()
